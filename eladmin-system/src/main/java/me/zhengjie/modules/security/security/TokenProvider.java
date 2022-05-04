@@ -85,7 +85,7 @@ public class TokenProvider implements InitializingBean {
      * @param token /
      * @return /
      */
-    Authentication getAuthentication(String token) {
+    public Authentication getAuthentication(String token) {
         Claims claims = getClaims(token);
         User principal = new User(claims.getSubject(), "******", new ArrayList<>());
         return new UsernamePasswordAuthenticationToken(principal, token, new ArrayList<>());

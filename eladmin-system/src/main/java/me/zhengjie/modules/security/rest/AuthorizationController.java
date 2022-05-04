@@ -16,7 +16,9 @@
 package me.zhengjie.modules.security.rest;
 
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.StrUtil;
 import com.wf.captcha.base.Captcha;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,7 @@ import me.zhengjie.modules.security.security.TokenProvider;
 import me.zhengjie.modules.security.service.dto.AuthUserDto;
 import me.zhengjie.modules.security.service.dto.JwtUserDto;
 import me.zhengjie.modules.security.service.OnlineUserService;
+import me.zhengjie.modules.security.service.dto.OnlineUserDto;
 import me.zhengjie.utils.RsaUtils;
 import me.zhengjie.utils.RedisUtils;
 import me.zhengjie.utils.SecurityUtils;
@@ -49,6 +52,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -69,22 +73,40 @@ public class AuthorizationController {
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
     @Resource
     private LoginProperties loginProperties;
+    private TokenPojo tokenPojo;
+    static class TokenPojo{
+        String token;
 
+        public String getToken() {
+            return token;
+        }
+
+        public void setToken(String token) {
+            this.token = token;
+        }
+
+        @Override
+        public String toString() {
+            return "TokenPojo{" +
+                    "token='" + token + '\'' +
+                    '}';
+        }
+    }
     @ApiOperation("登录授权")
     @AnonymousPostMapping(value = "/login")
     public ResponseEntity<Object> login(@Validated @RequestBody AuthUserDto authUser, HttpServletRequest request) throws Exception {
         // 密码解密
         String password = RsaUtils.decryptByPrivateKey(RsaProperties.privateKey, authUser.getPassword());
         // 查询验证码
-//        String code = (String) redisUtils.get(authUser.getUuid());
-//        // 清除验证码
-//        redisUtils.del(authUser.getUuid());
-//        if (StringUtils.isBlank(code)) {
-//            throw new BadRequestException("验证码不存在或已过期");
-//        }
-//        if (StringUtils.isBlank(authUser.getCode()) || !authUser.getCode().equalsIgnoreCase(code)) {
-//            throw new BadRequestException("验证码错误");
-//        }
+        String code = (String) redisUtils.get(authUser.getUuid());
+        // 清除验证码
+        redisUtils.del(authUser.getUuid());
+        if (StringUtils.isBlank(code)) {
+            throw new BadRequestException("验证码不存在或已过期");
+        }
+        if (StringUtils.isBlank(authUser.getCode()) || !authUser.getCode().equalsIgnoreCase(code)) {
+            throw new BadRequestException("验证码错误");
+        }
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(authUser.getUsername(), password);
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
@@ -141,5 +163,71 @@ public class AuthorizationController {
     public ResponseEntity<Object> logout(HttpServletRequest request) {
         onlineUserService.logout(tokenProvider.getToken(request));
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @ApiOperation("无验证码登录")
+    @AnonymousPostMapping(value = "/loginByNoCode")
+    public ResponseEntity<Object> loginWithNoCode(@Validated @RequestBody AuthUserDto authUser, HttpServletRequest request) throws Exception {
+        // 密码解密
+        String password = RsaUtils.decryptByPrivateKey(RsaProperties.privateKey, authUser.getPassword());
+        UsernamePasswordAuthenticationToken authenticationToken =
+                new UsernamePasswordAuthenticationToken(authUser.getUsername(), password);
+        Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        // 生成令牌与第三方系统获取令牌方式
+        // UserDetails userDetails = userDetailsService.loadUserByUsername(userInfo.getUsername());
+        // Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        // SecurityContextHolder.getContext().setAuthentication(authentication);
+        String token = tokenProvider.createToken(authentication);
+        final JwtUserDto jwtUserDto = (JwtUserDto) authentication.getPrincipal();
+        // 保存在线信息
+        onlineUserService.save(jwtUserDto, token, request);
+        // 返回 token 与 用户信息
+        Map<String, Object> authInfo = new HashMap<String, Object>(2) {{
+            put("token", properties.getTokenStartWith() + token);
+            put("user", jwtUserDto);
+        }};
+        if (loginProperties.isSingleLogin()) {
+            //踢掉之前已经登录的token
+            onlineUserService.checkLoginOnUser(authUser.getUsername(), token);
+        }
+        return ResponseEntity.ok(authInfo);
+    }
+
+
+    @ApiOperation("验证token")
+    @AnonymousPostMapping(value = "/verifyToken")
+    public ResponseEntity<Object> verifyToken(@Validated @RequestBody TokenPojo token, HttpServletRequest request) throws Exception {
+        tokenPojo = token;
+        String tokend = tokenPojo.getToken().replace("Bearer ","");
+        String str = "";
+        if (StrUtil.isNotBlank(tokend)) {
+            OnlineUserDto onlineUserDto = null;
+            try {
+                onlineUserDto = onlineUserService.getOne(properties.getOnlineKey() + tokend);
+            } catch (ExpiredJwtException e) {
+                log.error(e.getMessage());
+                str = "false";
+            }
+            if (onlineUserDto == null){
+                str = "false";
+            }
+            if (onlineUserDto != null && org.springframework.util.StringUtils.hasText(tokend)) {
+                Authentication authentication = tokenProvider.getAuthentication(tokend);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                // Token 续期
+                tokenProvider.checkRenewal(tokend);
+                str = "true";
+            }
+        }
+
+        // 返回 token 与 用户信息
+        String finalStr = str;
+        Map<String, Object> authInfo = new HashMap<String, Object>(2) {{
+            put("token", "Bearer "+tokend);
+            put("info", finalStr);
+        }};
+
+        return ResponseEntity.ok(authInfo);
     }
 }
