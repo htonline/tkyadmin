@@ -176,6 +176,29 @@ public class FileUtil extends cn.hutool.core.io.FileUtil {
         return file;
     }
 
+    public static File uploadRaw(MultipartFile file, String filePath) {
+        String name = getFileNameNoEx(file.getOriginalFilename());
+        String suffix = getExtensionName(file.getOriginalFilename());
+        try {
+            String fileName = name + "." + suffix;
+            String path = filePath +"\\"+ fileName;
+            // getCanonicalFile 可解析正确各种路径
+            File dest = new File(path).getCanonicalFile();
+            // 检测是否存在目录
+            if (!dest.getParentFile().exists()) {
+                if (!dest.getParentFile().mkdirs()) {
+                    System.out.println("was not successful.");
+                }
+            }
+            // 文件写入
+            file.transferTo(dest);
+            return dest;
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+        return null;
+    }
+
     /**
      * 将文件名解析成文件的上传路径
      */

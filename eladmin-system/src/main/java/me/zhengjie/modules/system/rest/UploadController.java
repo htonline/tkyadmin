@@ -3,15 +3,16 @@ package me.zhengjie.modules.system.rest;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
+import me.zhengjie.modules.system.domain.FileMD5;
 import me.zhengjie.modules.system.service.UploadService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import javax.servlet.http.HttpServletRequest;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,6 +22,12 @@ public class UploadController {
 
     @Autowired
     private final UploadService uploadService;
+
+    @ApiOperation("验证文件")
+    @PostMapping(value = "/verifyFile")
+    public ResponseEntity<Object> verifyFile(@Validated @RequestBody FileMD5 fileMD5,HttpServletRequest request){
+        return new ResponseEntity<>(uploadService.verifyFile(fileMD5), HttpStatus.OK);
+    }
 
     @ApiOperation("上传文件")
     @PostMapping(value = "/updateFile")

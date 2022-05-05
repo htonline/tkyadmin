@@ -3,10 +3,12 @@ package me.zhengjie.modules.system.service.impl;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.config.FileProperties;
 import me.zhengjie.modules.security.service.UserCacheClean;
+import me.zhengjie.modules.system.domain.FileMD5;
 import me.zhengjie.modules.system.domain.User;
 import me.zhengjie.modules.system.repository.UserRepository;
 import me.zhengjie.modules.system.service.UploadService;
 import me.zhengjie.utils.*;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,6 +22,8 @@ public class UploadServiceImpl implements UploadService {
     private final UserRepository userRepository;
     private final FileProperties properties;
     private final UserCacheClean userCacheClean;
+    private FileUtils utils = new FileUtils();
+
     @Override
     public Map<String, String> uploadPhoto(MultipartFile multipartFile) {
         User user = userRepository.findByUsername(SecurityUtils.getCurrentUsername());
@@ -58,9 +62,13 @@ public class UploadServiceImpl implements UploadService {
 
     @Override
     public Map<String, String> uploadFileBySplit(MultipartFile multipartFile) {
+        String uploaddir = properties.getPath().getAvatar();
         User user = userRepository.findByUsername(SecurityUtils.getCurrentUsername());
         String oldPath = user.getAvatarPath();
-        File file = FileUtil.upload(multipartFile, properties.getPath().getPath());
+        String[] sts = multipartFile.getOriginalFilename().split("\\.");
+        String fileName = sts[0] + "." + sts[1];
+        File file = FileUtil.uploadRaw(multipartFile, properties.getPath().getPath() + fileName + "_");
+
         user.setAvatarName(Objects.requireNonNull(file).getPath());
         user.setAvatarName(file.getName());
         String filename = file.getName();
@@ -71,31 +79,51 @@ public class UploadServiceImpl implements UploadService {
         }
         @NotBlank String username = user.getUsername();
         flushCache(username);
-        String [] strs = filename.split("\\.");
-        if (strs[strs.length -1].equals("part")){
-            ArrayList<File> partFiles = FileUtils.getDirFilesForPrefix("C:\\eladmin\\file",
-                    strs[0]+"."+strs[1]+".");
-            if (partFiles.size() == Integer.valueOf(strs[strs.length -2])){
-                Collections.sort(partFiles, new FileUtils.FileComparator());
-                FileUtils utils = new FileUtils();
-                try {
-                    utils.mergePartFiles("C:\\eladmin\\file",
-                            strs[0]+"."+strs[1]+".",
-                            partFiles.get(0).length(),
-                            "C:\\eladmin\\file\\"+strs[0]+"."+strs[1]
-                    );
-                    return new HashMap<String, String>(1) {{
-                        put("avatar", strs[0]+"."+strs[1]);
-                    }};
-                } catch (Exception e) {
-                    e.printStackTrace();
+        boolean down = utils.doFile(file);
+        return new HashMap<String, String>(1) {{
+            put("avatar", file.getName() + "." + down);
+        }};
+    }
+
+    @Override
+    public Map<String, String> verifyFile(FileMD5 fileMD5) {
+        String filename = fileMD5.getFilename();
+        String filemd5 = fileMD5.getMd5();
+        long length = fileMD5.getLen();
+        String path = properties.getPath().getPath();
+        String exits = null;
+        File file = new File(path, filename);
+        int count = 0;
+        if (file.exists()) {
+//            String md5 = FileUtil.getMd5(file);
+//            if (filemd5.equals(md5)) {
+                exits = "file";
+//            } else {
+//                exits = "nomd5";
+//            }
+        } else if (length <= 70 * 1024 * 1024) {
+            exits = "nofile";
+        } else {
+            File fileDi = new File(path, filename + "_");
+            if (fileDi.exists() && fileDi.isDirectory()) {
+                exits = "directory";
+                count = FileUtils.countFiles(fileDi);
+            } else {
+                if (!fileDi.exists()) {
+                    fileDi.mkdir();
+                    exits = "directory";
                 }
             }
         }
-        return new HashMap<String, String>(1) {{
+        String finalExits = exits;
+        int finalCount = count;
+        return new HashMap<String, String>(3) {{
             put("avatar", file.getName());
+            put("exists", finalExits);
+            put("info", "" + finalCount);
         }};
     }
+
     private void flushCache(String username) {
         userCacheClean.cleanUserCache(username);
     }

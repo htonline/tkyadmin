@@ -225,6 +225,29 @@ public class FileUtils {
         return result;
     }
 
+    public boolean doFile(File file) {
+        String[] strs = file.getName().split("\\.");
+        String filePath = file.getParent();
+        File thisfiledir = new File(filePath);
+        String filep = thisfiledir.getParent();
+        if (Objects.equals(Integer.valueOf(strs[strs.length - 2]),thisfiledir.listFiles().length)){
+            ArrayList<File> partFiles = FileUtils.getDirFilesForPrefix(filePath,
+                    strs[0] + "." + strs[1] + ".");
+            Collections.sort(partFiles, new FileComparator());
+            try {
+                mergePartFiles(filePath,
+                        strs[0] + "." + strs[1] + ".",
+                        partFiles.get(0).length(),
+                        filep+"\\" + strs[0] + "." + strs[1]
+                );
+                return true;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return false;
+    }
+
     /**
      * 拆分文件
      *
@@ -260,6 +283,23 @@ public class FileUtils {
             }
         }
         return parts;
+    }
+
+    public Boolean deleteFile(File file) {
+        //判断文件不为null或文件目录存在
+        if (file == null || !file.exists()) {
+            return false;
+        }
+        File[] files = file.listFiles();
+        for (File f : files) {
+            if (f.isDirectory()) {
+                deleteFile(f);
+            } else {
+                f.delete();
+            }
+        }
+        file.delete();
+        return true;
     }
 
     /**
@@ -302,7 +342,7 @@ public class FileUtils {
             }
         }
         threadPool.shutdown();
-
+        deleteFile(new File(dirPath));
     }
 
     /**
@@ -390,4 +430,16 @@ public class FileUtils {
         }
     }
 
+    public boolean mkNewDir(File file){
+        if (file.exists() && file.isDirectory()){
+            return true;
+        }else {
+            boolean mkdir = file.mkdir();
+            return mkdir;
+        }
+    }
+
+    public static int countFiles(File file){
+        return file.listFiles().length;
+    }
 }
