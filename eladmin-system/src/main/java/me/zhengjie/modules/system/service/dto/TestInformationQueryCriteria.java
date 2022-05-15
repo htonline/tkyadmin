@@ -23,7 +23,7 @@ import me.zhengjie.annotation.Query;
 /**
 * @website https://el-admin.vip
 * @author LJL
-* @date 2022-04-19
+* @date 2022-05-06
 **/
 @Data
 public class TestInformationQueryCriteria{
@@ -111,4 +111,164 @@ public class TestInformationQueryCriteria{
     /** 精确 */
     @Query
     private String statute;
+
+    /** 精确 */
+    @Query
+    private String beizhu1;
+
+    /** 精确 */
+    @Query
+    private String beizhu2;
+
+    /** 精确 */
+    @Query
+    private String beizhu3;
+
+    /** 精确 */
+    @Query
+    private String beizhu4;
+
+    /** 精确 */
+    @Query
+    private String beizhu5;
+
+    /** 精确 */
+    @Query
+    private String beizhu6;
+
+    /** 精确 */
+    @Query
+    private String beizhu7;
+
+    /** 精确 */
+    @Query
+    private String beizhu8;
+
+    /** 精确 */
+    @Query
+    private String beizhu9;
+
+    /** 精确 */
+    @Query
+    private String beizhu10;
+
+    /** 精确 */
+    @Query
+    private String beizhu11;
+
+    /** 精确 */
+    @Query
+    private String beizhu12;
+
+    /** 精确 */
+    @Query
+    private String beizhu13;
+
+    /** 精确 */
+    @Query
+    private String beizhu14;
+
+    /** 精确 */
+    @Query
+    private String beizhu15;
+
+    /** 精确 */
+    @Query
+    private String beizhu16;
+
+    /** 精确 */
+    @Query
+    private String beizhu17;
+
+    /** 精确 */
+    @Query
+    private String beizhu18;
+
+    /** 精确 */
+    @Query
+    private String beizhu19;
+
+    /** 精确 */
+    @Query
+    private String beizhu20;
+
+    /** 精确 */
+    @Query
+    private String beizhu21;
+
+    /** 精确 */
+    @Query
+    private String beizhu22;
+
+    /** 精确 */
+    @Query
+    private String beizhu23;
+
+    /** 精确 */
+    @Query
+    private String beizhu24;
+
+    /** 精确 */
+    @Query
+    private String beizhu25;
+
+    /** 精确 */
+    @Query
+    private String beizhu26;
+
+    /** 精确 */
+    @Query
+    private String beizhu27;
+
+    /** 精确 */
+    @Query
+    private String beizhu28;
+
+    /** 精确 */
+    @Query
+    private String beizhu29;
+
+    /** 精确 */
+    @Query
+    private String beizhu30;
+
+    /** 精确 */
+    @Query
+    private String beizhu31;
+
+    /** 精确 */
+    @Query
+    private String beizhu32;
+
+    /** 精确 */
+    @Query
+    private String beizhu33;
+
+    /** 精确 */
+    @Query
+    private String beizhu34;
+
+    /** 精确 */
+    @Query
+    private String beizhu35;
+
+    /** 精确 */
+    @Query
+    private String beizhu36;
+
+    /** 精确 */
+    @Query
+    private String beizhu37;
+
+    /** 精确 */
+    @Query
+    private String beizhu38;
+
+    /** 精确 */
+    @Query
+    private String beizhu39;
+
+    /** 精确 */
+    @Query
+    private String beizhu40;
 }

@@ -25,6 +25,7 @@ import me.zhengjie.service.LocalStorageService;
 import me.zhengjie.service.dto.LocalStorageDto;
 import me.zhengjie.service.dto.LocalStorageQueryCriteria;
 import me.zhengjie.utils.FileUtil;
+import me.zhengjie.utils.SecurityUtils;
 import org.apache.poi.util.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +70,13 @@ public class TunnelInformationController {
     @ApiOperation("查询api/tunnel_information")
     @PreAuthorize("@el.check('tunnelInformation:list')")
     public ResponseEntity<Object> queryTunnelInformation(TunnelInformationQueryCriteria criteria, Pageable pageable){
-        return new ResponseEntity<>(tunnelInformationService.queryAll(criteria,pageable),HttpStatus.OK);
+        if(SecurityUtils.getCurrentUsername().equals("admin")){
+            return new ResponseEntity<>(tunnelInformationService.queryAll(criteria,pageable),HttpStatus.OK);
+        }else{
+            criteria.setUserId(SecurityUtils.getCurrentUserId());
+            criteria.setUserName(SecurityUtils.getCurrentUsername());
+            return new ResponseEntity<>(tunnelInformationService.queryAll(criteria,pageable),HttpStatus.OK);
+        }
     }
 
     @PostMapping
@@ -78,6 +85,8 @@ public class TunnelInformationController {
     @PreAuthorize("@el.check('tunnelInformation:add')")
     public ResponseEntity<Object> createTunnelInformation(@Validated @RequestBody TunnelInformation resources){
         resources.setBeizhu4("未发布");
+        resources.setUserId(SecurityUtils.getCurrentUserId());
+        resources.setUserName(SecurityUtils.getCurrentUsername());
         resources.setTunnelStartingDistance("DK"+resources.getBeizhu1()+"+"+resources.getBeizhu5());
         resources.setTunnelEndingDistance("DK"+resources.getBeizhu2()+"+"+resources.getBeizhu6());
         return new ResponseEntity<>(tunnelInformationService.create(resources),HttpStatus.CREATED);
@@ -148,7 +157,14 @@ public class TunnelInformationController {
     @ApiOperation("状态条件查询")
     public ResponseEntity<Object> selectByStatue(TunnelInformationQueryCriteria criteria, Pageable pageable){
         criteria.setBeizhu4("已发布");
-        return new ResponseEntity<>(tunnelInformationService.queryAll(criteria),HttpStatus.OK);
+        if(SecurityUtils.getCurrentUsername().equals("admin")){
+            return new ResponseEntity<>(tunnelInformationService.queryAll(criteria),HttpStatus.OK);
+        }else{
+            criteria.setUserId(SecurityUtils.getCurrentUserId());
+            criteria.setUserName(SecurityUtils.getCurrentUsername());
+            return new ResponseEntity<>(tunnelInformationService.queryAll(criteria),HttpStatus.OK);
+        }
+
     }
     @GetMapping("/selectByStatueFenye")
     @Log("状态条件查询（分页）api/selectByStatueFenye")
@@ -156,7 +172,14 @@ public class TunnelInformationController {
     @PreAuthorize("@el.check('tunnelInformation:list')")
     public ResponseEntity<Object> selectByStatueFenye(TunnelInformationQueryCriteria criteria, Pageable pageable){
         criteria.setBeizhu4("已发布");
-        return new ResponseEntity<>(tunnelInformationService.queryAll(criteria,pageable),HttpStatus.OK);
+        if(SecurityUtils.getCurrentUsername().equals("admin")){
+            return new ResponseEntity<>(tunnelInformationService.queryAll(criteria,pageable),HttpStatus.OK);
+        }else{
+            criteria.setUserId(SecurityUtils.getCurrentUserId());
+            criteria.setUserName(SecurityUtils.getCurrentUsername());
+            return new ResponseEntity<>(tunnelInformationService.queryAll(criteria,pageable),HttpStatus.OK);
+        }
+
     }
     @PostMapping("/selectByTunnelName")
     @Log("隧道名称条件查询（分页）api/selectByTunnelName")
@@ -166,7 +189,14 @@ public class TunnelInformationController {
         TunnelInformationQueryCriteria criteria = new TunnelInformationQueryCriteria();
         criteria.setBeizhu4("已发布");
         criteria.setTunnelName(tunnelName);
-        return new ResponseEntity<>(tunnelInformationService.queryAll(criteria),HttpStatus.OK);
+        if(SecurityUtils.getCurrentUsername().equals("admin")){
+            return new ResponseEntity<>(tunnelInformationService.queryAll(criteria),HttpStatus.OK);
+        }else{
+            criteria.setUserId(SecurityUtils.getCurrentUserId());
+            criteria.setUserName(SecurityUtils.getCurrentUsername());
+            return new ResponseEntity<>(tunnelInformationService.queryAll(criteria),HttpStatus.OK);
+        }
+
     }
 
 }

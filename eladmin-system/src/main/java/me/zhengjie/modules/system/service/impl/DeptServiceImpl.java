@@ -88,6 +88,12 @@ public class DeptServiceImpl implements DeptService {
     }
 
     @Override
+    public List<DeptDto> queryAllUser(DeptQueryCriteria criteria, Boolean isQuery) throws Exception {
+
+        return deptMapper.toDto(deptRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root,criteria,criteriaBuilder)));
+
+    }
+    @Override
     @Cacheable(key = "'id:' + #p0")
     public DeptDto findById(Long id) {
         Dept dept = deptRepository.findById(id).orElseGet(Dept::new);

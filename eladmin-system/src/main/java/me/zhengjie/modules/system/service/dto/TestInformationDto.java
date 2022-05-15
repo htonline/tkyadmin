@@ -23,7 +23,7 @@ import java.io.Serializable;
 * @website https://el-admin.vip
 * @description /
 * @author LJL
-* @date 2022-04-19
+* @date 2022-05-06
 **/
 @Data
 public class TestInformationDto implements Serializable {
@@ -91,33 +91,97 @@ public class TestInformationDto implements Serializable {
     /** 状态 */
     private String statute;
 
+    /** 隧道编号 */
     private String beizhu1;
 
+    /** 隧道起始里程 */
     private String beizhu2;
 
+    /** 隧道结束里程 */
     private String beizhu3;
 
+    /** 隧道长度 */
     private String beizhu4;
 
+    /** 施工单位 */
     private String beizhu5;
 
+    /** 联系人 */
     private String beizhu6;
 
+    /** 联系方式 */
     private String beizhu7;
 
+    /** 检测单位 */
     private String beizhu8;
 
+    /** 监理单位 */
     private String beizhu9;
 
+    /** 检测方式 */
     private String beizhu10;
 
+    /** 检测方法 */
     private String beizhu11;
 
+    /** 检测部位 */
     private String beizhu12;
 
+    /** 浇筑时间 */
     private String beizhu13;
 
     private String beizhu14;
 
     private String beizhu15;
+
+    /** 浇筑时间 */
+    private String beizhu16;
+
+    private String beizhu17;
+
+    private String beizhu18;
+
+    private String beizhu19;
+
+    private String beizhu20;
+
+    private String beizhu21;
+
+    private String beizhu22;
+
+    private String beizhu23;
+
+    private String beizhu24;
+
+    private String beizhu25;
+
+    private String beizhu26;
+
+    private String beizhu27;
+
+    private String beizhu28;
+
+    private String beizhu29;
+
+    private String beizhu30;
+
+    private String beizhu31;
+
+    private String beizhu32;
+
+    private String beizhu33;
+
+    private String beizhu34;
+
+    private String beizhu35;
+
+    private String beizhu36;
+
+    private String beizhu37;
+
+    private String beizhu38;
+
+    private String beizhu39;
+
+    private String beizhu40;
 }

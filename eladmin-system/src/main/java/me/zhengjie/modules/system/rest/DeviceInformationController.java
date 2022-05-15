@@ -17,8 +17,11 @@ package me.zhengjie.modules.system.rest;
 
 import me.zhengjie.annotation.Log;
 import me.zhengjie.modules.system.domain.DeviceInformation;
+import me.zhengjie.modules.system.domain.TunnelInformation;
 import me.zhengjie.modules.system.service.DeviceInformationService;
 import me.zhengjie.modules.system.service.dto.DeviceInformationQueryCriteria;
+import me.zhengjie.service.LocalStorageService;
+import me.zhengjie.service.dto.LocalStorageQueryCriteria;
 import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -83,5 +86,33 @@ public class DeviceInformationController {
     public ResponseEntity<Object> deleteDeviceInformation(@RequestBody Long[] ids) {
         deviceInformationService.deleteAll(ids);
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+    private final LocalStorageService localStorageService;
+
+    @PostMapping("/selectPhotos")
+    @Log("查询文件api/selectPhotos")
+    @ApiOperation("查询文件")
+    public ResponseEntity<Object> selectPhotos(@Validated @RequestBody DeviceInformation resources){
+        LocalStorageQueryCriteria LScriteria = new LocalStorageQueryCriteria();
+        if( resources.getDevicePhotos()==null){
+            return new ResponseEntity<>(HttpStatus.OK);
+        }else{
+            LScriteria.setId(Long.valueOf(resources.getDevicePhotos()));
+            return new ResponseEntity<>(localStorageService.queryAll(LScriteria),HttpStatus.OK);
+        }
+
+    }
+    @PostMapping("/selectdeviceCertificate")
+    @Log("查询文件api/selectdeviceCertificate")
+    @ApiOperation("查询文件")
+    public ResponseEntity<Object> selectdeviceCertificate(@Validated @RequestBody DeviceInformation resources){
+        LocalStorageQueryCriteria LScriteria = new LocalStorageQueryCriteria();
+        if( resources.getDeviceCertificate()==null){
+            return new ResponseEntity<>(HttpStatus.OK);
+        }else{
+            LScriteria.setId(Long.valueOf(resources.getDeviceCertificate()));
+            return new ResponseEntity<>(localStorageService.queryAll(LScriteria),HttpStatus.OK);
+        }
+
     }
 }

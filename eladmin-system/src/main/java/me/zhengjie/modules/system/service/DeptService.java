@@ -37,7 +37,14 @@ public interface DeptService {
      * @return /
      */
     List<DeptDto> queryAll(DeptQueryCriteria criteria, Boolean isQuery) throws Exception;
-
+    /**
+     * 查询所有数据
+     * @param criteria 条件
+     * @param isQuery /
+     * @throws Exception /
+     * @return /
+     */
+    List<DeptDto> queryAllUser(DeptQueryCriteria criteria, Boolean isQuery) throws Exception;
     /**
      * 根据ID查询
      * @param id /

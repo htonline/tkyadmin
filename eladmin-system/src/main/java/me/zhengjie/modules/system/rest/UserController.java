@@ -22,19 +22,18 @@ import lombok.RequiredArgsConstructor;
 import me.zhengjie.annotation.Log;
 import me.zhengjie.config.RsaProperties;
 import me.zhengjie.modules.system.domain.Dept;
-import me.zhengjie.modules.system.service.DataService;
+import me.zhengjie.modules.system.domain.UserInfo;
+import me.zhengjie.modules.system.service.*;
 import me.zhengjie.modules.system.domain.User;
 import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.modules.system.domain.vo.UserPassVo;
-import me.zhengjie.modules.system.service.DeptService;
-import me.zhengjie.modules.system.service.RoleService;
 import me.zhengjie.modules.system.service.dto.RoleSmallDto;
 import me.zhengjie.modules.system.service.dto.UserDto;
+import me.zhengjie.modules.system.service.dto.UserInfoQueryCriteria;
 import me.zhengjie.modules.system.service.dto.UserQueryCriteria;
-import me.zhengjie.modules.system.service.VerifyService;
 import me.zhengjie.utils.*;
-import me.zhengjie.modules.system.service.UserService;
 import me.zhengjie.utils.enums.CodeEnum;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -102,6 +101,9 @@ public class UserController {
         return new ResponseEntity<>(PageUtil.toPage(null,0),HttpStatus.OK);
     }
 
+    private final UserInfoService userInfoService;
+
+
     @Log("新增用户")
     @ApiOperation("新增用户")
     @PostMapping
@@ -111,6 +113,20 @@ public class UserController {
         // 默认密码 123456
         resources.setPassword(passwordEncoder.encode("123456"));
         userService.create(resources);
+
+        UserDto resou = userService.findByName(resources.getUsername());
+
+        UserDto resous = userService.findById(resou.getId());
+
+        UserInfo re = new UserInfo();
+        re.setUserId(userService.findById(resou.getId()).getId());
+        re.setUsername(userService.findById(resou.getId()).getUsername());
+        re.setNickName(userService.findById(resou.getId()).getNickName());
+        re.setDeptId(userService.findById(resou.getId()).getDept().getId());
+        re.setDeptName( deptService.findById(userService.findById(resou.getId()).getDept().getId()).getName());
+        userInfoService.create(re);
+
+
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
@@ -121,6 +137,24 @@ public class UserController {
     public ResponseEntity<Object> updateUser(@Validated(User.Update.class) @RequestBody User resources) throws Exception {
         checkLevel(resources);
         userService.update(resources);
+
+
+        UserDto resou = userService.findByName(resources.getUsername());
+
+        UserDto resous = userService.findById(resou.getId());
+
+        UserInfoQueryCriteria criteria = new UserInfoQueryCriteria();
+        criteria.setUsername(resources.getUsername());
+        userInfoService.queryAll(criteria).get(0);
+
+        UserInfo re = new UserInfo();
+        re.setUserId( userInfoService.queryAll(criteria).get(0).getUserId());
+        re.setUsername(userService.findById(resou.getId()).getUsername());
+        re.setNickName(userService.findById(resou.getId()).getNickName());
+        re.setDeptId(userService.findById(resou.getId()).getDept().getId());
+        re.setDeptName( deptService.findById(userService.findById(resou.getId()).getDept().getId()).getName());
+        userInfoService.update(re);
+
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
