@@ -22,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.Map;
 import java.util.List;
 import java.io.IOException;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
@@ -80,4 +81,14 @@ public interface DetectionInformationService {
     * @throws IOException /
     */
     void download(List<DetectionInformationDto> all, HttpServletResponse response) throws IOException;
+
+    void downloadFile(String detectionData, String detectionPhotos, String radarPhotos, String detectionSummary, String others, HttpServletRequest request, HttpServletResponse response);
+
+    void updateRadarPhoto(Long detectionInfomationId, String avatar);
+
+    void updateDetectionSummary(Long detectionInfomationId, String avatar);
+
+    void uploadOthers(Long detectionInfomationId, String avatar);
+
+    void downloadOneFile(String oneFile, HttpServletRequest request, HttpServletResponse response);
 }
