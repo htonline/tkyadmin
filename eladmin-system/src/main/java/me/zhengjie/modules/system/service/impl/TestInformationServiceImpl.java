@@ -1,20 +1,22 @@
 /*
-*  Copyright 2019-2020 Zheng Jie
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*  http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*/
+ *  Copyright 2019-2020 Zheng Jie
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package me.zhengjie.modules.system.service.impl;
 
+import me.zhengjie.config.FileProperties;
+import me.zhengjie.modules.system.domain.DetectionInformation;
 import me.zhengjie.modules.system.domain.TestInformation;
 import me.zhengjie.utils.ValidationUtil;
 import me.zhengjie.utils.FileUtil;
@@ -30,42 +32,49 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import me.zhengjie.utils.PageUtil;
 import me.zhengjie.utils.QueryHelp;
+
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 import java.io.IOException;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
 /**
-* @website https://el-admin.vip
-* @description 服务实现
-* @author LJL
-* @date 2022-04-19
-**/
+ * @author LJL
+ * @website https://el-admin.vip
+ * @description 服务实现
+ * @date 2022-04-19
+ **/
 @Service
 @RequiredArgsConstructor
 public class TestInformationServiceImpl implements TestInformationService {
 
     private final TestInformationRepository testInformationRepository;
     private final TestInformationMapper testInformationMapper;
+    private final FileProperties properties;
 
     @Override
-    public Map<String,Object> queryAll(TestInformationQueryCriteria criteria, Pageable pageable){
-        Page<TestInformation> page = testInformationRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root,criteria,criteriaBuilder),pageable);
+    public Map<String, Object> queryAll(TestInformationQueryCriteria criteria, Pageable pageable) {
+        Page<TestInformation> page = testInformationRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder), pageable);
         return PageUtil.toPage(page.map(testInformationMapper::toDto));
     }
 
     @Override
-    public List<TestInformationDto> queryAll(TestInformationQueryCriteria criteria){
-        return testInformationMapper.toDto(testInformationRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root,criteria,criteriaBuilder)));
+    public List<TestInformationDto> queryAll(TestInformationQueryCriteria criteria) {
+        return testInformationMapper.toDto(testInformationRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder)));
     }
 
     @Override
     @Transactional
     public TestInformationDto findById(Long testInforId) {
         TestInformation testInformation = testInformationRepository.findById(testInforId).orElseGet(TestInformation::new);
-        ValidationUtil.isNull(testInformation.getTestInforId(),"TestInformation","testInforId",testInforId);
+        ValidationUtil.isNull(testInformation.getTestInforId(), "TestInformation", "testInforId", testInforId);
         return testInformationMapper.toDto(testInformation);
     }
 
@@ -79,7 +88,7 @@ public class TestInformationServiceImpl implements TestInformationService {
     @Transactional(rollbackFor = Exception.class)
     public void update(TestInformation resources) {
         TestInformation testInformation = testInformationRepository.findById(resources.getTestInforId()).orElseGet(TestInformation::new);
-        ValidationUtil.isNull( testInformation.getTestInforId(),"TestInformation","id",resources.getTestInforId());
+        ValidationUtil.isNull(testInformation.getTestInforId(), "TestInformation", "id", resources.getTestInforId());
         testInformation.copy(resources);
         testInformationRepository.save(testInformation);
     }
@@ -95,7 +104,7 @@ public class TestInformationServiceImpl implements TestInformationService {
     public void download(List<TestInformationDto> all, HttpServletResponse response) throws IOException {
         List<Map<String, Object>> list = new ArrayList<>();
         for (TestInformationDto testInformation : all) {
-            Map<String,Object> map = new LinkedHashMap<>();
+            Map<String, Object> map = new LinkedHashMap<>();
             map.put("报检号", testInformation.getTestId());
             map.put("申请检测时间", testInformation.getTestTime());
             map.put("待检区段起始里程", testInformation.getTestStartingDistance());
@@ -116,23 +125,68 @@ public class TestInformationServiceImpl implements TestInformationService {
             map.put("隧道名称", testInformation.getTunnelName());
             map.put("工点名称", testInformation.getWorksiteName());
             map.put("状态", testInformation.getStatute());
-            map.put(" beizhu1",  testInformation.getBeizhu1());
-            map.put(" beizhu2",  testInformation.getBeizhu2());
-            map.put(" beizhu3",  testInformation.getBeizhu3());
-            map.put(" beizhu4",  testInformation.getBeizhu4());
-            map.put(" beizhu5",  testInformation.getBeizhu5());
-            map.put(" beizhu6",  testInformation.getBeizhu6());
-            map.put(" beizhu7",  testInformation.getBeizhu7());
-            map.put(" beizhu8",  testInformation.getBeizhu8());
-            map.put(" beizhu9",  testInformation.getBeizhu9());
-            map.put(" beizhu10",  testInformation.getBeizhu10());
-            map.put(" beizhu11",  testInformation.getBeizhu11());
-            map.put(" beizhu12",  testInformation.getBeizhu12());
-            map.put(" beizhu13",  testInformation.getBeizhu13());
-            map.put(" beizhu14",  testInformation.getBeizhu14());
-            map.put(" beizhu15",  testInformation.getBeizhu15());
+            map.put(" beizhu1", testInformation.getBeizhu1());
+            map.put(" beizhu2", testInformation.getBeizhu2());
+            map.put(" beizhu3", testInformation.getBeizhu3());
+            map.put(" beizhu4", testInformation.getBeizhu4());
+            map.put(" beizhu5", testInformation.getBeizhu5());
+            map.put(" beizhu6", testInformation.getBeizhu6());
+            map.put(" beizhu7", testInformation.getBeizhu7());
+            map.put(" beizhu8", testInformation.getBeizhu8());
+            map.put(" beizhu9", testInformation.getBeizhu9());
+            map.put(" beizhu10", testInformation.getBeizhu10());
+            map.put(" beizhu11", testInformation.getBeizhu11());
+            map.put(" beizhu12", testInformation.getBeizhu12());
+            map.put(" beizhu13", testInformation.getBeizhu13());
+            map.put(" beizhu14", testInformation.getBeizhu14());
+            map.put(" beizhu15", testInformation.getBeizhu15());
             list.add(map);
         }
         FileUtil.downloadExcel(list, response);
     }
+
+    @Override
+    public void updateDetectionSummary(Long testinfoId, String avatar) {
+        TestInformation testInformation = testInformationRepository.findById(testinfoId).orElseGet(TestInformation::new);
+        ValidationUtil.isNull(testInformation.getTestInforId(), "DetectionInformation", "id", testinfoId);
+        testInformation.setBeizhu26(avatar);
+        testInformationRepository.save(testInformation);
+    }
+
+    @Override
+    public void downloadFile(String beizhu26, HttpServletRequest request, HttpServletResponse response) {
+        File file = new File(properties.getPath().getPath(), beizhu26);
+        if (!file.exists()) {
+            return;
+        }
+        byte[] buf = new byte[1024];
+        // 获取输出流
+        BufferedOutputStream bos = null;
+        try {
+            bos = new BufferedOutputStream(response.getOutputStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            response.reset(); // 重点突出
+            // 不同类型的文件对应不同的MIME类型
+            response.setContentType("applicatoin/octet-stream");
+            response.setCharacterEncoding("utf-8");
+            response.setHeader("Content-disposition", "attachment;filename=" + URLEncoder.encode(file.getName(), "UTF-8"));
+            FileInputStream in = new FileInputStream(file);
+            // 给列表中的文件单独命名
+            int len;
+            while ((len = in.read(buf)) > 0) {
+                bos.write(buf, 0, len);
+            }
+            in.close();
+            bos.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        //  FileUtil.downloadFile(request, response, zf, true);
+
+    }
+
+
 }

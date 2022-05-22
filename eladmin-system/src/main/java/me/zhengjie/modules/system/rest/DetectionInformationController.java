@@ -154,7 +154,7 @@ public class DetectionInformationController {
     @ApiOperation("更新其他附件")
     @PostMapping(value = "/uploadOthers")
     public ResponseEntity<Object> uploadOthers(@RequestParam("file") MultipartFile multipartFile, @RequestParam String data) {
-        System.out.println(data);
+//        System.out.println(data);
         Map<String, String> uploadfile = uploadService.uploadfile(multipartFile);
         String avatar = uploadfile.get("avatar");
         detectionInformationService.uploadOthers(Long.valueOf(data), avatar);

@@ -22,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.Map;
 import java.util.List;
 import java.io.IOException;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
@@ -80,4 +81,8 @@ public interface TestInformationService {
     * @throws IOException /
     */
     void download(List<TestInformationDto> all, HttpServletResponse response) throws IOException;
+
+    void updateDetectionSummary(Long testinfoId, String avatar);
+
+    void downloadFile(String beizhu26, HttpServletRequest request, HttpServletResponse response);
 }

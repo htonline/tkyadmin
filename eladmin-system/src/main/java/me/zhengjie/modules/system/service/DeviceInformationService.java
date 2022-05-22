@@ -80,4 +80,6 @@ public interface DeviceInformationService {
     * @throws IOException /
     */
     void download(List<DeviceInformationDto> all, HttpServletResponse response) throws IOException;
+
+    Object queryByDeviceId(String id);
 }

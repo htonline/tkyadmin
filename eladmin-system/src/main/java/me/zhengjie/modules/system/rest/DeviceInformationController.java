@@ -16,8 +16,10 @@
 package me.zhengjie.modules.system.rest;
 
 import me.zhengjie.annotation.Log;
+import me.zhengjie.modules.security.service.dto.AuthUserDto;
 import me.zhengjie.modules.system.domain.DeviceInformation;
 import me.zhengjie.modules.system.domain.TunnelInformation;
+import me.zhengjie.modules.system.repository.DeviceInformationRepository;
 import me.zhengjie.modules.system.service.DeviceInformationService;
 import me.zhengjie.modules.system.service.dto.DeviceInformationQueryCriteria;
 import me.zhengjie.service.LocalStorageService;
@@ -31,6 +33,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.annotations.*;
 import java.io.IOException;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
@@ -43,7 +46,7 @@ import javax.servlet.http.HttpServletResponse;
 @Api(tags = "api/device_information管理")
 @RequestMapping("/api/deviceInformation")
 public class DeviceInformationController {
-
+    private final DeviceInformationRepository deviceInformationRepository;
     private final DeviceInformationService deviceInformationService;
 
     @Log("导出数据")
@@ -113,6 +116,12 @@ public class DeviceInformationController {
             LScriteria.setId(Long.valueOf(resources.getDeviceCertificate()));
             return new ResponseEntity<>(localStorageService.queryAll(LScriteria),HttpStatus.OK);
         }
+    }
 
+    @PostMapping("/queryDeviceInformation")
+    @Log("查询文件api/queryDeviceInformation")
+    @ApiOperation("根据id查设备信息")
+    public ResponseEntity<Object> queryDeviceInformation(@Validated @RequestParam String id, HttpServletRequest request){
+        return new ResponseEntity<>(deviceInformationService.queryByDeviceId(id),HttpStatus.OK);
     }
 }

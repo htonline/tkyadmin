@@ -20,6 +20,8 @@ import cn.hutool.extra.qrcode.QrCodeUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import me.zhengjie.annotation.Log;
+import me.zhengjie.exception.BadRequestException;
+import me.zhengjie.modules.system.domain.DetectionInformation;
 import me.zhengjie.modules.system.domain.TestInformation;
 import me.zhengjie.modules.system.domain.TunnelInformation;
 import me.zhengjie.modules.system.service.*;
@@ -35,11 +37,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.annotations.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
@@ -54,7 +58,8 @@ import javax.servlet.http.HttpServletResponse;
 public class TestInformationController {
 
     private final TestInformationService testInformationService;
-
+    @Autowired
+    private final UploadService uploadService;
     @Autowired
     private  DeptService deptService;
     @Autowired
@@ -289,6 +294,33 @@ public class TestInformationController {
         DeviceInformationQueryCriteria criteria = new  DeviceInformationQueryCriteria();
         criteria.setDeviceType("主机");
         return new ResponseEntity<>(deviceInformationService.queryAll(criteria),HttpStatus.OK);
+    }
+
+    @ApiOperation("更新BeiZhu26即检测报告")
+    @PostMapping(value = "/updateBeiZhu26")
+    public ResponseEntity<Object> updateBeiZhu26(@RequestParam("file") MultipartFile multipartFile, @RequestParam String data) {
+//        System.out.println(data);
+        Map<String, String> uploadfile = uploadService.uploadfile(multipartFile);
+        String avatar = uploadfile.get("avatar");
+        testInformationService.updateDetectionSummary(Long.valueOf(data), avatar);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+
+    @ApiOperation("下载文件")
+    @PostMapping(value = "/{type}")
+    public ResponseEntity<Object> generator(@Validated @RequestBody TestInformation resources, @PathVariable Integer type, HttpServletRequest request, HttpServletResponse response) {
+        if (type == -2) {
+            try {
+                testInformationService.downloadFile(resources.getBeizhu26(), request, response);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+
+            throw new BadRequestException("没有这个选项!");
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
 }
