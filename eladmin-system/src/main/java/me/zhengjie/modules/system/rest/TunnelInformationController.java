@@ -17,10 +17,13 @@ package me.zhengjie.modules.system.rest;
 
 import me.zhengjie.annotation.Log;
 import me.zhengjie.domain.LocalStorage;
+import me.zhengjie.modules.system.domain.ParamTunnel;
 import me.zhengjie.modules.system.domain.TunnelInformation;
+import me.zhengjie.modules.system.service.DefectInformationService;
+import me.zhengjie.modules.system.service.TestInformationService;
 import me.zhengjie.modules.system.service.TunnelInformationService;
 import me.zhengjie.modules.system.service.UserService;
-import me.zhengjie.modules.system.service.dto.TunnelInformationQueryCriteria;
+import me.zhengjie.modules.system.service.dto.*;
 import me.zhengjie.service.LocalStorageService;
 import me.zhengjie.service.dto.LocalStorageDto;
 import me.zhengjie.service.dto.LocalStorageQueryCriteria;
@@ -196,6 +199,52 @@ public class TunnelInformationController {
             criteria.setUserName(SecurityUtils.getCurrentUsername());
             return new ResponseEntity<>(tunnelInformationService.queryAll(criteria),HttpStatus.OK);
         }
+
+    }
+
+    private final TestInformationService testInformationService;
+    private final DefectInformationService defectInformationService;
+
+    //@PreAuthorize("@el.check('tunnelInformation:list')")
+    @PostMapping("/selectParam")
+    @Log("首页参数 api/selectParam")
+    @ApiOperation("首页参数 api/selectParam")
+    public ResponseEntity<Object> selectParam() {
+        TunnelInformationQueryCriteria criteria = new TunnelInformationQueryCriteria();
+        List<TunnelInformationDto> LTDto = tunnelInformationService.queryAll(criteria);
+        int tn = LTDto.size();
+        int tl=0;
+        for(int i=0;i<tn;i++){
+            tl=tl+Integer.valueOf( LTDto.get(i).getTunnelLength());
+        }
+        criteria.setBeizhu4("已发布");
+        List<TunnelInformationDto> LTDto1 = tunnelInformationService.queryAll(criteria);
+        int tn1 = LTDto1.size();
+        int fl=0;
+        for(int i=0;i<tn1;i++){
+            fl=fl+Integer.valueOf( LTDto1.get(i).getTunnelLength());
+        }
+        TestInformationQueryCriteria resou = new  TestInformationQueryCriteria();
+        List<TestInformationDto> TDto =testInformationService.queryAll(resou);
+        int bl=1;
+        for(int i=0;i<TDto.size();i++){
+            bl=bl+Integer.valueOf(TDto.get(i).getTestLength());
+        }
+        resou.setStatute("报检单已审批");
+        List<TestInformationDto> TDto1 =testInformationService.queryAll(resou);
+        int yl=0;
+        for(int i=0;i<TDto1.size();i++){
+            yl=yl+Integer.valueOf(TDto1.get(i).getTestLength());
+        }
+        DefectInformationQueryCriteria DefectInformationQueryCriteria = new DefectInformationQueryCriteria();
+        DefectInformationQueryCriteria.setBeizhu1("已处理");
+        int yq = defectInformationService.queryAll(DefectInformationQueryCriteria).size();
+        DefectInformationQueryCriteria.setBeizhu1("未处理");
+        int wq = defectInformationService.queryAll(DefectInformationQueryCriteria).size();
+        double jl = ((double)yl/(double)bl)*100;
+        ParamTunnel paramTunnel = new ParamTunnel(tn,tl,fl,bl,yl,yq,wq,jl);
+        return new ResponseEntity<>(paramTunnel,HttpStatus.OK);
+
 
     }
 

@@ -87,4 +87,7 @@ public class DefectInformationQueryCriteria{
     /** 精确 */
     @Query
     private String others;
+    /** 精确 */
+    @Query
+    private String beizhu1;//缺陷状态
 }

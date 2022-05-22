@@ -15,9 +15,7 @@
 */
 package me.zhengjie.modules.system.service.impl;
 
-import io.swagger.annotations.ApiOperation;
 import me.zhengjie.modules.system.domain.DefectInformation;
-import me.zhengjie.modules.system.service.UploadService;
 import me.zhengjie.utils.ValidationUtil;
 import me.zhengjie.utils.FileUtil;
 import lombok.RequiredArgsConstructor;
@@ -26,19 +24,12 @@ import me.zhengjie.modules.system.service.DefectInformationService;
 import me.zhengjie.modules.system.service.dto.DefectInformationDto;
 import me.zhengjie.modules.system.service.dto.DefectInformationQueryCriteria;
 import me.zhengjie.modules.system.service.mapstruct.DefectInformationMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import me.zhengjie.utils.PageUtil;
 import me.zhengjie.utils.QueryHelp;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.util.List;
 import java.util.Map;
 import java.io.IOException;
