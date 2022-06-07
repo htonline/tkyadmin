@@ -215,7 +215,7 @@ public class TunnelInformationController {
         int tn = LTDto.size();
         int tl=0;
         for(int i=0;i<tn;i++){
-            tl=tl+Integer.valueOf( LTDto.get(i).getTunnelLength());
+            tl=tl+Integer.valueOf(LTDto.get(i).getTunnelLength());
         }
         criteria.setBeizhu4("已发布");
         List<TunnelInformationDto> LTDto1 = tunnelInformationService.queryAll(criteria);
