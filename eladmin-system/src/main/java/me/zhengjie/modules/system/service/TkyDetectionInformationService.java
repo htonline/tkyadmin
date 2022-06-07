@@ -80,4 +80,8 @@ public interface TkyDetectionInformationService {
     * @throws IOException /
     */
     void download(List<TkyDetectionInformationDto> all, HttpServletResponse response) throws IOException;
+
+    void uploadDZSdata(String bydbh, String sjstartMile, String sjstopMile, String appFileTypeRadar, String i, String account,String cxbh);
+
+    void downloadFile(String appFileTypeRadar, String appFileTypePhoto, HttpServletResponse response);
 }

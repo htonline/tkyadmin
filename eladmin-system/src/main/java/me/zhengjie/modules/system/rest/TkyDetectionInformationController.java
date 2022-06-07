@@ -16,6 +16,8 @@
 package me.zhengjie.modules.system.rest;
 
 import me.zhengjie.annotation.Log;
+import me.zhengjie.exception.BadRequestException;
+import me.zhengjie.modules.system.domain.DetectionInformation;
 import me.zhengjie.modules.system.domain.TkyDetectionInformation;
 import me.zhengjie.modules.system.service.TkyDetectionInformationService;
 import me.zhengjie.modules.system.service.dto.TkyDetectionInformationQueryCriteria;
@@ -27,7 +29,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.annotations.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.io.IOException;
+import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
@@ -70,7 +76,6 @@ public class TkyDetectionInformationController {
     @PutMapping
     @Log("修改api/tky_detection_information")
     @ApiOperation("修改api/tky_detection_information")
-    @PreAuthorize("@el.check('tkyDetectionInformation:edit')")
     public ResponseEntity<Object> updateTkyDetectionInformation(@Validated @RequestBody TkyDetectionInformation resources){
         tkyDetectionInformationService.update(resources);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -82,6 +87,24 @@ public class TkyDetectionInformationController {
     @PreAuthorize("@el.check('tkyDetectionInformation:del')")
     public ResponseEntity<Object> deleteTkyDetectionInformation(@RequestBody Integer[] ids) {
         tkyDetectionInformationService.deleteAll(ids);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+
+    @ApiOperation("更新其他附件")
+    @PostMapping(value = "/uploadDZSdata")
+    public ResponseEntity<Object> uploadDZSdata(@RequestBody TkyDetectionInformation resources) {
+        tkyDetectionInformationService.uploadDZSdata(resources.getBydbh(),resources.getSjstartMile(),
+                resources.getSjstopMile(),resources.getAppFileTypePhoto(),"0",resources.getAccount(),resources.getBeizhu1());
+        tkyDetectionInformationService.uploadDZSdata(resources.getBydbh(),resources.getSjstartMile(),
+                resources.getSjstopMile(),resources.getAppFileTypeRadar(),"2",resources.getAccount(),resources.getBeizhu1());
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @ApiOperation("下载文件")
+    @PostMapping(value = "/{type}")
+    public ResponseEntity<Object> generator(@Validated @RequestBody TkyDetectionInformation resources, @PathVariable Integer type, HttpServletRequest request, HttpServletResponse response) {
+        tkyDetectionInformationService.downloadFile(resources.getAppFileTypeRadar(), resources.getAppFileTypePhoto(), response);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 }
