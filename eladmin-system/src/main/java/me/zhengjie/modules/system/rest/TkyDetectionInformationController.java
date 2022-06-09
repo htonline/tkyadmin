@@ -20,6 +20,7 @@ import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.modules.system.domain.DetectionInformation;
 import me.zhengjie.modules.system.domain.TkyDetectionInformation;
 import me.zhengjie.modules.system.service.TkyDetectionInformationService;
+import me.zhengjie.modules.system.service.dto.TkyDetectionInformationDto;
 import me.zhengjie.modules.system.service.dto.TkyDetectionInformationQueryCriteria;
 import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ import io.swagger.annotations.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -70,7 +72,16 @@ public class TkyDetectionInformationController {
     @ApiOperation("新增api/tky_detection_information")
     @PreAuthorize("@el.check('tkyDetectionInformation:add')")
     public ResponseEntity<Object> createTkyDetectionInformation(@Validated @RequestBody TkyDetectionInformation resources){
-        return new ResponseEntity<>(tkyDetectionInformationService.create(resources),HttpStatus.CREATED);
+        TkyDetectionInformationQueryCriteria criteria = new TkyDetectionInformationQueryCriteria();
+        criteria.setBydbh(resources.getBydbh());
+        criteria.setAppFileTypeRadar(resources.getAppFileTypeRadar());
+        criteria.setBeizhu1(resources.getBeizhu1());
+        List<TkyDetectionInformationDto> tkyDetectionInformationDtos = tkyDetectionInformationService.queryAll(criteria);
+        if (tkyDetectionInformationDtos.size() == 0){
+            return new ResponseEntity<>(tkyDetectionInformationService.create(resources),HttpStatus.CREATED);
+        }else{
+            return new ResponseEntity<>(null,HttpStatus.CREATED);
+        }
     }
 
     @PutMapping
