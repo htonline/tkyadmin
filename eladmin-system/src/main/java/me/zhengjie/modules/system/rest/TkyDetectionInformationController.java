@@ -78,7 +78,17 @@ public class TkyDetectionInformationController {
         criteria.setBeizhu1(resources.getBeizhu1());
         List<TkyDetectionInformationDto> tkyDetectionInformationDtos = tkyDetectionInformationService.queryAll(criteria);
         if (tkyDetectionInformationDtos.size() == 0){
-            return new ResponseEntity<>(tkyDetectionInformationService.create(resources),HttpStatus.CREATED);
+            tkyDetectionInformationService.create(resources);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    tkyDetectionInformationService.uploadDZSdata(resources.getBydbh(),resources.getSjstartMile(),
+                            resources.getSjstopMile(),resources.getAppFileTypePhoto(),"0",resources.getAccount(),resources.getBeizhu1());
+                    tkyDetectionInformationService.uploadDZSdata(resources.getBydbh(),resources.getSjstartMile(),
+                            resources.getSjstopMile(),resources.getAppFileTypeRadar(),"2",resources.getAccount(),resources.getBeizhu1());
+                }
+            }).start();
+            return new ResponseEntity<>(null,HttpStatus.CREATED);
         }else{
             return new ResponseEntity<>(null,HttpStatus.CREATED);
         }

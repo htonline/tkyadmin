@@ -25,6 +25,7 @@ import me.zhengjie.annotation.Log;
 import me.zhengjie.modules.system.domain.TestInformation;
 import me.zhengjie.modules.system.domain.TkyTestInformation;
 import me.zhengjie.modules.system.service.TkyTestInformationService;
+import me.zhengjie.modules.system.service.dto.TkyTestInformationDto;
 import me.zhengjie.modules.system.service.dto.TkyTestInformationQueryCriteria;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +40,7 @@ import io.swagger.annotations.*;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import javax.servlet.http.HttpServletResponse;
@@ -103,6 +105,14 @@ public class TkyTestInformationController {
     @ApiOperation("更新铁科院数据")
     @PostMapping(value = "/syntkydata")
     public ResponseEntity<Object> syntkydata(@RequestBody Object o) {
+        TkyTestInformationQueryCriteria criteria = new TkyTestInformationQueryCriteria();
+        List<String> listids = new ArrayList<>();
+        List<TkyTestInformationDto> tkyTestInformationDtos = tkyTestInformationService.queryAll(criteria);
+        for (TkyTestInformationDto tkyTestInformationDto : tkyTestInformationDtos) {
+            listids.add(tkyTestInformationDto.getId());
+        }
+        String[] lsids = new String[tkyTestInformationDtos.size()];
+        tkyTestInformationService.deleteAll(listids.toArray(lsids));
         List<TkyTestInformation> tkyTestInformationList = JSON.parseArray(o.toString(), TkyTestInformation.class);
         for (TkyTestInformation tkyTestInformation : tkyTestInformationList) {
             tkyTestInformationService.create(tkyTestInformation);
