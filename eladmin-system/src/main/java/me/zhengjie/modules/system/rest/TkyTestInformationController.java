@@ -105,14 +105,14 @@ public class TkyTestInformationController {
     @ApiOperation("更新铁科院数据")
     @PostMapping(value = "/syntkydata")
     public ResponseEntity<Object> syntkydata(@RequestBody Object o) {
-        TkyTestInformationQueryCriteria criteria = new TkyTestInformationQueryCriteria();
-        List<String> listids = new ArrayList<>();
-        List<TkyTestInformationDto> tkyTestInformationDtos = tkyTestInformationService.queryAll(criteria);
-        for (TkyTestInformationDto tkyTestInformationDto : tkyTestInformationDtos) {
-            listids.add(tkyTestInformationDto.getId());
-        }
-        String[] lsids = new String[tkyTestInformationDtos.size()];
-        tkyTestInformationService.deleteAll(listids.toArray(lsids));
+//        TkyTestInformationQueryCriteria criteria = new TkyTestInformationQueryCriteria();
+//        List<String> listids = new ArrayList<>();
+//        List<TkyTestInformationDto> tkyTestInformationDtos = tkyTestInformationService.queryAll(criteria);
+//        for (TkyTestInformationDto tkyTestInformationDto : tkyTestInformationDtos) {
+//            listids.add(tkyTestInformationDto.getId());
+//        }
+//        String[] lsids = new String[tkyTestInformationDtos.size()];
+//        tkyTestInformationService.deleteAll(listids.toArray(lsids));
         List<TkyTestInformation> tkyTestInformationList = JSON.parseArray(o.toString(), TkyTestInformation.class);
         for (TkyTestInformation tkyTestInformation : tkyTestInformationList) {
             tkyTestInformationService.create(tkyTestInformation);
