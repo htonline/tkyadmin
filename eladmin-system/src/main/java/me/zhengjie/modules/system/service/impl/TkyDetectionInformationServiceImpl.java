@@ -139,7 +139,7 @@ public class TkyDetectionInformationServiceImpl implements TkyDetectionInformati
         String path = null;
         if (i.equals("0")) {
             path = properties.getPath().getAvatar();
-        } else if (i.equals("2")) {
+        } else if (i.equals("3")) {
             path = properties.getPath().getPath();
         }
         File file = new File(path, filename);

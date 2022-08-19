@@ -85,7 +85,7 @@ public class TkyDetectionInformationController {
                     tkyDetectionInformationService.uploadDZSdata(resources.getBydbh(),resources.getSjstartMile(),
                             resources.getSjstopMile(),resources.getAppFileTypePhoto(),"0",resources.getAccount(),resources.getBeizhu1());
                     tkyDetectionInformationService.uploadDZSdata(resources.getBydbh(),resources.getSjstartMile(),
-                            resources.getSjstopMile(),resources.getAppFileTypeRadar(),"2",resources.getAccount(),resources.getBeizhu1());
+                            resources.getSjstopMile(),resources.getAppFileTypeRadar(),"3",resources.getAccount(),resources.getBeizhu1());
                 }
             }).start();
             return new ResponseEntity<>(null,HttpStatus.CREATED);
@@ -118,7 +118,7 @@ public class TkyDetectionInformationController {
         tkyDetectionInformationService.uploadDZSdata(resources.getBydbh(),resources.getSjstartMile(),
                 resources.getSjstopMile(),resources.getAppFileTypePhoto(),"0",resources.getAccount(),resources.getBeizhu1());
         tkyDetectionInformationService.uploadDZSdata(resources.getBydbh(),resources.getSjstartMile(),
-                resources.getSjstopMile(),resources.getAppFileTypeRadar(),"2",resources.getAccount(),resources.getBeizhu1());
+                resources.getSjstopMile(),resources.getAppFileTypeRadar(),"3",resources.getAccount(),resources.getBeizhu1());
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

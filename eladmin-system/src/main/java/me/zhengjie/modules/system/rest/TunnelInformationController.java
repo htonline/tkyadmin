@@ -215,26 +215,42 @@ public class TunnelInformationController {
         int tn = LTDto.size();
         int tl=0;
         for(int i=0;i<tn;i++){
-            tl=tl+Integer.valueOf(LTDto.get(i).getTunnelLength());
+            String tunnelLength = LTDto.get(i).getTunnelLength();
+            if (tunnelLength.contains(".")){
+                tunnelLength = tunnelLength.split("\\.")[0];
+            }
+            tl=tl+Integer.parseInt(tunnelLength);
         }
         criteria.setBeizhu4("已发布");
         List<TunnelInformationDto> LTDto1 = tunnelInformationService.queryAll(criteria);
         int tn1 = LTDto1.size();
         int fl=0;
         for(int i=0;i<tn1;i++){
-            fl=fl+Integer.valueOf( LTDto1.get(i).getTunnelLength());
+            String tunnelLength = LTDto1.get(i).getTunnelLength();
+            if (tunnelLength.contains(".")){
+                tunnelLength = tunnelLength.split("\\.")[0];
+            }
+            fl=fl+Integer.parseInt(tunnelLength);
         }
         TestInformationQueryCriteria resou = new  TestInformationQueryCriteria();
         List<TestInformationDto> TDto =testInformationService.queryAll(resou);
         int bl=1;
         for(int i=0;i<TDto.size();i++){
-            bl=bl+Integer.valueOf(TDto.get(i).getTestLength());
+            String testLength = TDto.get(i).getTestLength();
+            if (testLength.contains(".")){
+                testLength = testLength.split("\\.")[0];
+            }
+            bl=bl+Integer.parseInt(testLength);
         }
         resou.setStatute("报检单已审批");
         List<TestInformationDto> TDto1 =testInformationService.queryAll(resou);
         int yl=0;
         for(int i=0;i<TDto1.size();i++){
-            yl=yl+Integer.valueOf(TDto1.get(i).getTestLength());
+            String testLength = TDto1.get(i).getTestLength();
+            if (testLength.contains(".")){
+                testLength = testLength.split("\\.")[0];
+            }
+            yl=yl+Integer.parseInt(testLength);
         }
         DefectInformationQueryCriteria DefectInformationQueryCriteria = new DefectInformationQueryCriteria();
         DefectInformationQueryCriteria.setBeizhu1("已处理");

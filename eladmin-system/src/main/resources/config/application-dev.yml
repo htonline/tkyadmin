@@ -111,8 +111,8 @@ file:
     path: /home/eladmin/file/
     avatar: /home/eladmin/avatar/
   windows:
-    path: D:\eladmin\file\
-    avatar: D:\eladmin\avatar\
+    path: C:\eladmin\file\
+    avatar: C:\eladmin\avatar\
   # 文件大小 /M
   maxSize: 100
   avatarMaxSize: 5
