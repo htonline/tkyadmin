@@ -203,13 +203,13 @@ public class FileUtil extends cn.hutool.core.io.FileUtil {
      * 将文件名解析成文件的上传路径
      */
     public static File upload(MultipartFile file, String filePath) {
-        Date date = new Date();
-        SimpleDateFormat format = new SimpleDateFormat("yyyyMMddhhmmssS");
+//        Date date = new Date();
+//        SimpleDateFormat format = new SimpleDateFormat("yyyyMMddhhmmssS");
         String name = getFileNameNoEx(file.getOriginalFilename());
         String suffix = getExtensionName(file.getOriginalFilename());
-        String nowStr = "-" + format.format(date);
+//        String nowStr = "-" + format.format(date);
         try {
-            String fileName = name + nowStr + "." + suffix;
+            String fileName = name  + "." + suffix;
             String path = filePath + fileName;
             // getCanonicalFile 可解析正确各种路径
             File dest = new File(path).getCanonicalFile();
