@@ -5,6 +5,8 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
+import static java.lang.System.in;
+
 /**
  * 文件处理辅助类
  *
@@ -356,7 +358,31 @@ public class FileUtils {
             return o1.getName().compareToIgnoreCase(o2.getName());
         }
     }
+    public static byte[] readFileToByteArray(File file) {
+//        File file = new File(path);
+        if(!file.exists()) {
+//            Log.e(TAG,"File doesn't exist!");
+            return null;
+        }
+        try {
+            FileInputStream ind = new FileInputStream(file);
+            long inSize = ind.getChannel().size();//判断FileInputStream中是否有内容
+            if (inSize == 0) {
+//                Log.d(TAG,"The FileInputStream has no content!");
+                return null;
+            }
 
+            byte[] buffer = new byte[ind.available()];//in.available() 表示要读取的文件中的数据长度
+            ind.read(buffer);  //将文件中的数据读到buffer中
+            return buffer;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
     /**
      * 分割处理Runnable
      *
