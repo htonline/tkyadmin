@@ -80,4 +80,8 @@ public interface TkyTestInformationService {
     * @throws IOException /
     */
     void download(List<TkyTestInformationDto> all, HttpServletResponse response) throws IOException;
+
+    void syntkydata();
+
+    void login();
 }

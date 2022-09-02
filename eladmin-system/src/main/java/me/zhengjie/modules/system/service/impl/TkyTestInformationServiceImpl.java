@@ -1,21 +1,26 @@
 /*
-*  Copyright 2019-2020 Zheng Jie
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*  http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*/
+ *  Copyright 2019-2020 Zheng Jie
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package me.zhengjie.modules.system.service.impl;
 
+import com.google.gson.Gson;
 import me.zhengjie.modules.system.domain.TkyTestInformation;
+import me.zhengjie.modules.system.verify.LoginDataBean;
+import me.zhengjie.modules.system.verify.ResultCode;
+import me.zhengjie.modules.system.verify.RsaUtil;
+import me.zhengjie.modules.system.verify.TkyTestInfoBean;
 import me.zhengjie.utils.ValidationUtil;
 import me.zhengjie.utils.FileUtil;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +29,7 @@ import me.zhengjie.modules.system.service.TkyTestInformationService;
 import me.zhengjie.modules.system.service.dto.TkyTestInformationDto;
 import me.zhengjie.modules.system.service.dto.TkyTestInformationQueryCriteria;
 import me.zhengjie.modules.system.service.mapstruct.TkyTestInformationMapper;
+import okhttp3.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import cn.hutool.core.util.IdUtil;
@@ -31,6 +37,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import me.zhengjie.utils.PageUtil;
 import me.zhengjie.utils.QueryHelp;
+
+import java.security.PublicKey;
 import java.util.List;
 import java.util.Map;
 import java.io.IOException;
@@ -38,42 +46,47 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
+import static me.zhengjie.modules.system.verify.RsaUtil.jwt;
+
 /**
-* @website https://el-admin.vip
-* @description 服务实现
-* @author wuxiaoxuan
-* @date 2022-05-31
-**/
+ * @author wuxiaoxuan
+ * @website https://el-admin.vip
+ * @description 服务实现
+ * @date 2022-05-31
+ **/
 @Service
 @RequiredArgsConstructor
 public class TkyTestInformationServiceImpl implements TkyTestInformationService {
-
+    public static String pubilcDefaultKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCEJiVVdmEzgRk/Lqg+I8JyavmI6eRZCv9d3rJ/yDGUS0BbxrrUrhdK4t/hLZUjkjtCsX80eLxecn6HkMBHaEM0tQYmZyxpB5NBPHioggQHDrJVskzDdqliHobem+X54INPznlXXwLtRl4vh1/ducI7laD59bVg/I+h/SrepgOvqwIDAQAB";
+    //    private final TkyTestInformationService tkyTestInformationService;
     private final TkyTestInformationRepository tkyTestInformationRepository;
     private final TkyTestInformationMapper tkyTestInformationMapper;
+    private OkHttpClient client;
+    private Gson gson;
 
     @Override
-    public Map<String,Object> queryAll(TkyTestInformationQueryCriteria criteria, Pageable pageable){
-        Page<TkyTestInformation> page = tkyTestInformationRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root,criteria,criteriaBuilder),pageable);
+    public Map<String, Object> queryAll(TkyTestInformationQueryCriteria criteria, Pageable pageable) {
+        Page<TkyTestInformation> page = tkyTestInformationRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder), pageable);
         return PageUtil.toPage(page.map(tkyTestInformationMapper::toDto));
     }
 
     @Override
-    public List<TkyTestInformationDto> queryAll(TkyTestInformationQueryCriteria criteria){
-        return tkyTestInformationMapper.toDto(tkyTestInformationRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root,criteria,criteriaBuilder)));
+    public List<TkyTestInformationDto> queryAll(TkyTestInformationQueryCriteria criteria) {
+        return tkyTestInformationMapper.toDto(tkyTestInformationRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder)));
     }
 
     @Override
     @Transactional
     public TkyTestInformationDto findById(String id) {
         TkyTestInformation tkyTestInformation = tkyTestInformationRepository.findById(id).orElseGet(TkyTestInformation::new);
-        ValidationUtil.isNull(tkyTestInformation.getId(),"TkyTestInformation","id",id);
+        ValidationUtil.isNull(tkyTestInformation.getId(), "TkyTestInformation", "id", id);
         return tkyTestInformationMapper.toDto(tkyTestInformation);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public TkyTestInformationDto create(TkyTestInformation resources) {
-        resources.setId(IdUtil.simpleUUID()); 
+        resources.setId(IdUtil.simpleUUID());
         return tkyTestInformationMapper.toDto(tkyTestInformationRepository.save(resources));
     }
 
@@ -81,7 +94,7 @@ public class TkyTestInformationServiceImpl implements TkyTestInformationService 
     @Transactional(rollbackFor = Exception.class)
     public void update(TkyTestInformation resources) {
         TkyTestInformation tkyTestInformation = tkyTestInformationRepository.findById(resources.getId()).orElseGet(TkyTestInformation::new);
-        ValidationUtil.isNull( tkyTestInformation.getId(),"TkyTestInformation","id",resources.getId());
+        ValidationUtil.isNull(tkyTestInformation.getId(), "TkyTestInformation", "id", resources.getId());
         tkyTestInformation.copy(resources);
         tkyTestInformationRepository.save(tkyTestInformation);
     }
@@ -97,7 +110,7 @@ public class TkyTestInformationServiceImpl implements TkyTestInformationService 
     public void download(List<TkyTestInformationDto> all, HttpServletResponse response) throws IOException {
         List<Map<String, Object>> list = new ArrayList<>();
         for (TkyTestInformationDto tkyTestInformation : all) {
-            Map<String,Object> map = new LinkedHashMap<>();
+            Map<String, Object> map = new LinkedHashMap<>();
             map.put("项目id", tkyTestInformation.getXmid());
             map.put("项目名称", tkyTestInformation.getXmname());
             map.put("标段id", tkyTestInformation.getBdid());
@@ -194,11 +207,91 @@ public class TkyTestInformationServiceImpl implements TkyTestInformationService 
             map.put("检测单位id", tkyTestInformation.getInspectionOrg());
             map.put("检测单位名称", tkyTestInformation.getInspectionOrgName());
             map.put("buildType", tkyTestInformation.getBuildtype());
-            map.put(" createdate",  tkyTestInformation.getCreatedate());
-            map.put(" createdatestr",  tkyTestInformation.getCreatedatestr());
+            map.put(" createdate", tkyTestInformation.getCreatedate());
+            map.put(" createdatestr", tkyTestInformation.getCreatedatestr());
             map.put("中间报告检测", tkyTestInformation.getZjbgjc());
             list.add(map);
         }
         FileUtil.downloadExcel(list, response);
     }
+
+    @Override
+    public void syntkydata() {
+        try {
+            Request request1 = new Request.Builder()
+                    .url("https://apps.r93535.com/services/ZL02203/sdljzljcapi/sd_projectinspectiondeclaration/getWaitSubmitList")
+                    .method("GET", null)
+                    .addHeader("Cookie", "CRBIMSSOJWT=" + jwt)
+                    .build();
+            Response response1 = null;
+
+            response1 = client.newCall(request1).execute();
+
+            TkyTestInfoBean tkyTestInfoBean = gson.fromJson(response1.body().string(), TkyTestInfoBean.class);
+            List<TkyTestInformation> tkyTestInformationList = tkyTestInfoBean.getData();
+            TkyTestInformationQueryCriteria criteria = new TkyTestInformationQueryCriteria();
+            List<String> listids = new ArrayList<>();
+            List<TkyTestInformationDto> tkyTestInformationDtos = queryAll(criteria);
+            for (TkyTestInformationDto tkyTestInformationDto : tkyTestInformationDtos) {
+                listids.add(tkyTestInformationDto.getBydbh());
+            }
+//            String[] lsids = new String[tkyTestInformationDtos.size()];
+//            deleteAll(listids.toArray(lsids));
+//        List<TkyTestInformation> tkyTestInformationList = JSON.parseArray(o.toString(), TkyTestInformation.class);
+            for (TkyTestInformation tkyTestInformation : tkyTestInformationList) {
+                if (!listids.contains(tkyTestInformation.getBydbh())) {
+                    create(tkyTestInformation);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void login() {
+        client = new OkHttpClient().newBuilder()
+                .build();
+        LoginDataBean loginDataBean = new LoginDataBean();
+        loginDataBean.setAccount("wgwangy");
+        loginDataBean.setPassword("jXY3aFLf5TZlGyterIkUzg==");
+        loginDataBean.setAppname("地质雷达");
+        String currentMillus = System.currentTimeMillis() + "";
+        loginDataBean.setTimestamp(currentMillus);
+        PublicKey publicKey = null;
+        try {
+            publicKey = RsaUtil.string2PublicKey(pubilcDefaultKey);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        String byte2Base64 = RsaUtil.encipher((new Gson()).toJson(loginDataBean).getBytes(), publicKey, 117);
+        RequestBody body = new MultipartBody.Builder().setType(MultipartBody.FORM)
+                .addFormDataPart("appname", "r")
+                .addFormDataPart("account", "wgwangy")
+                .addFormDataPart("password", "jXY3aFLf5TZlGyterIkUzg==")
+                .addFormDataPart("timestamp", currentMillus)
+                .addFormDataPart("token", byte2Base64)
+                .build();
+        Request request = new Request.Builder()
+                .url("http://sso.r93535.com/api/v1.0/login")
+                .method("POST", body)
+//                .addHeader("Cookie", "CRBIMSSOJWT=value; acw_tc=784e2c9416620949727877649e096239e5a4e7d27661eea17ed0785eb002ff; BIGipServerpool_srxtjk=!3I0ue8NPOHZfdNqb/CULM79eIdI1FHSQoPKGBsb5YlU9iVzON0FyT+g1dQIOSApSFW9V+m/jkuVWvvA=")
+                .build();
+        try {
+            Response response = client.newCall(request).execute();
+            String s = response.body().string();
+//            System.out.println(s);
+            gson = new Gson();
+            ResultCode resultCode = gson.fromJson(s, ResultCode.class);
+//            System.out.println(resultCode.getJwt());
+            String jwt = resultCode.getJwt();
+            RsaUtil.jwt = jwt;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
 }
