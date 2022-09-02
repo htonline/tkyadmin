@@ -27,6 +27,10 @@ import me.zhengjie.modules.system.domain.TkyTestInformation;
 import me.zhengjie.modules.system.service.TkyTestInformationService;
 import me.zhengjie.modules.system.service.dto.TkyTestInformationDto;
 import me.zhengjie.modules.system.service.dto.TkyTestInformationQueryCriteria;
+import me.zhengjie.modules.system.verify.AES;
+import me.zhengjie.modules.system.verify.LoginDataBean;
+import net.dreamlu.mica.core.utils.RsaUtil;
+import okhttp3.OkHttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +43,7 @@ import io.swagger.annotations.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.PublicKey;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -104,21 +109,23 @@ public class TkyTestInformationController {
 
     @ApiOperation("更新铁科院数据")
     @PostMapping(value = "/syntkydata")
-    public ResponseEntity<Object> syntkydata(@RequestBody Object o) {
-        TkyTestInformationQueryCriteria criteria = new TkyTestInformationQueryCriteria();
-        List<String> listids = new ArrayList<>();
-        List<TkyTestInformationDto> tkyTestInformationDtos = tkyTestInformationService.queryAll(criteria);
-        for (TkyTestInformationDto tkyTestInformationDto : tkyTestInformationDtos) {
-            listids.add(tkyTestInformationDto.getBydbh());
-        }
+    public ResponseEntity<Object> syntkydata() {
+        tkyTestInformationService.login();
+        tkyTestInformationService.syntkydata();
+//        TkyTestInformationQueryCriteria criteria = new TkyTestInformationQueryCriteria();
+//        List<String> listids = new ArrayList<>();
+//        List<TkyTestInformationDto> tkyTestInformationDtos = tkyTestInformationService.queryAll(criteria);
+//        for (TkyTestInformationDto tkyTestInformationDto : tkyTestInformationDtos) {
+//            listids.add(tkyTestInformationDto.getBydbh());
+//        }
 //        String[] lsids = new String[tkyTestInformationDtos.size()];
 //        tkyTestInformationService.deleteAll(listids.toArray(lsids));
-        List<TkyTestInformation> tkyTestInformationList = JSON.parseArray(o.toString(), TkyTestInformation.class);
-        for (TkyTestInformation tkyTestInformation : tkyTestInformationList) {
-            if (!listids.contains(tkyTestInformation.getBydbh())){
-                tkyTestInformationService.create(tkyTestInformation);
-            }
-        }
+//        List<TkyTestInformation> tkyTestInformationList = JSON.parseArray(o.toString(), TkyTestInformation.class);
+//        for (TkyTestInformation tkyTestInformation : tkyTestInformationList) {
+//            if (!listids.contains(tkyTestInformation.getBydbh())){
+//                tkyTestInformationService.create(tkyTestInformation);
+//            }
+//        }
         return new ResponseEntity<>(HttpStatus.OK);
     }
     @Autowired

@@ -20,6 +20,7 @@ import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.modules.system.domain.DetectionInformation;
 import me.zhengjie.modules.system.domain.TkyDetectionInformation;
 import me.zhengjie.modules.system.service.TkyDetectionInformationService;
+import me.zhengjie.modules.system.service.TkyTestInformationService;
 import me.zhengjie.modules.system.service.dto.TkyDetectionInformationDto;
 import me.zhengjie.modules.system.service.dto.TkyDetectionInformationQueryCriteria;
 import org.springframework.data.domain.Pageable;
@@ -50,7 +51,7 @@ import javax.servlet.http.HttpServletResponse;
 public class TkyDetectionInformationController {
 
     private final TkyDetectionInformationService tkyDetectionInformationService;
-
+    private final TkyTestInformationService tkyTestInformationService;
     @Log("导出数据")
     @ApiOperation("导出数据")
     @GetMapping(value = "/download")
@@ -82,6 +83,7 @@ public class TkyDetectionInformationController {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
+                    tkyTestInformationService.login();
                     tkyDetectionInformationService.uploadDZSdata(resources.getBydbh(),resources.getSjstartMile(),
                             resources.getSjstopMile(),resources.getAppFileTypePhoto(),"0",resources.getAccount(),resources.getBeizhu1());
                     tkyDetectionInformationService.uploadDZSdata(resources.getBydbh(),resources.getSjstartMile(),

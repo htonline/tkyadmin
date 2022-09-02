@@ -17,6 +17,7 @@ package me.zhengjie.modules.system.service.impl;
 
 import me.zhengjie.config.FileProperties;
 import me.zhengjie.modules.system.domain.TkyDetectionInformation;
+import me.zhengjie.modules.system.service.TkyTestInformationService;
 import me.zhengjie.utils.ValidationUtil;
 import me.zhengjie.utils.FileUtil;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,8 @@ import java.util.LinkedHashMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import static me.zhengjie.modules.system.verify.RsaUtil.jwt;
+
 /**
  * @author wuxiaoxuan
  * @website https://el-admin.vip
@@ -59,7 +62,6 @@ public class TkyDetectionInformationServiceImpl implements TkyDetectionInformati
     private final FileProperties properties;
     private final TkyDetectionInformationRepository tkyDetectionInformationRepository;
     private final TkyDetectionInformationMapper tkyDetectionInformationMapper;
-
     @Override
     public Map<String, Object> queryAll(TkyDetectionInformationQueryCriteria criteria, Pageable pageable) {
         Page<TkyDetectionInformation> page = tkyDetectionInformationRepository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelp.getPredicate(root, criteria, criteriaBuilder), pageable);
@@ -125,7 +127,7 @@ public class TkyDetectionInformationServiceImpl implements TkyDetectionInformati
 
     @Override
     public void uploadDZSdata(String bydbh, String sjstartMile, String sjstopMile, String filename, String i, String account,String cxbh) {
-        String urlstring = "http://39.104.163.161:8888/demo/sd_projectinspectiondeclaration/uploadFxjg?bydbh=" + bydbh
+        String urlstring = "https://apps.r93535.com/services/ZL02203/sdljzljcapi/sd_projectinspectiondeclaration/uploadFxjg?bydbh=" + bydbh
                 + "&app_file_type=" + i
                 + "&sjstart_mile=" + sjstartMile
                 + "&sjstop_mile=" + sjstopMile
@@ -156,7 +158,7 @@ public class TkyDetectionInformationServiceImpl implements TkyDetectionInformati
         Request request = new Request.Builder()
                 .url(urlstring)
                 .method("POST", body)
-                .addHeader("CRBIMUID", "369364")
+                .addHeader("Cookie", "CRBIMSSOJWT=" + jwt)
                 .build();
         try (Response response = client.newCall(request).execute()) {
             System.out.println(response);
