@@ -267,7 +267,7 @@ public class TkyTestInformationServiceImpl implements TkyTestInformationService 
 
         String byte2Base64 = RsaUtil.encipher((new Gson()).toJson(loginDataBean).getBytes(), publicKey, 117);
         RequestBody body = new MultipartBody.Builder().setType(MultipartBody.FORM)
-                .addFormDataPart("appname", "r")
+                .addFormDataPart("appname", "地质雷达")
                 .addFormDataPart("account", "wgwangy")
                 .addFormDataPart("password", "jXY3aFLf5TZlGyterIkUzg==")
                 .addFormDataPart("timestamp", currentMillus)
