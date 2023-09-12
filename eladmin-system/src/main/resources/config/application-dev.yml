@@ -6,7 +6,7 @@ spring:
       driverClassName: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
       url: jdbc:log4jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:tkysql}?serverTimezone=Asia/Shanghai&characterEncoding=utf8&useSSL=false
       username: ${DB_USER:root}
-      password: ${DB_PWD:123456}
+      password: ${DB_PWD:beijing123$%^}
       # 初始连接数
       initial-size: 5
       # 最小连接数
@@ -111,8 +111,8 @@ file:
     path: /home/eladmin/file/
     avatar: /home/eladmin/avatar/
   windows:
-    path: C:\eladmin\file\
-    avatar: C:\eladmin\avatar\
+    path: D:\eladmin\file\radarFile\
+    avatar: D:\eladmin\avatar\
   # 文件大小 /M
-  maxSize: 100
+  maxSize: 100000
   avatarMaxSize: 5
