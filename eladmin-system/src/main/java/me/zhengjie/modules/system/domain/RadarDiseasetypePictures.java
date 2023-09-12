@@ -35,7 +35,7 @@ import java.io.Serializable;
 public class RadarDiseasetypePictures implements Serializable {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+//    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     @ApiModelProperty(value = "ID")
     private Integer id;

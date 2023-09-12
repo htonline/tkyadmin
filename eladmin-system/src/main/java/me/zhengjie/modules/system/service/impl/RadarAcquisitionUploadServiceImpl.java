@@ -133,7 +133,8 @@ public class RadarAcquisitionUploadServiceImpl implements RadarAcquisitionUpload
         //      File.separator 是一个表示文件路径分隔符的常量，用于在不同操作系统上正确处理文件路径的分隔符。使得你的代码可以在不同的操作系统上运行而不需要手动更改文件路径分隔符。
         //      properties.getPath().getPath(): D:\eladmin\file\radarFile\
         // filePath: D:\eladmin\file\radarFile\作者
-        String filePath = properties.getPath().getPath() + author;
+        String originPath = "D:\\eladmin\\file\\radarFile\\";
+        String filePath = originPath + author;
 
         // 获取当前时间戳(sql)
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
