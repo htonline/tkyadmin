@@ -4,12 +4,14 @@ import lombok.RequiredArgsConstructor;
 import me.zhengjie.modules.system.service.UploaderService;
 import me.zhengjie.modules.system.service.dto.FileChunkDTO;
 import me.zhengjie.modules.system.service.dto.FileChunkResultDTO;
+import me.zhengjie.utils.SecurityUtils;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -30,10 +32,7 @@ public class UploaderServiceImpl implements UploaderService {
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
 
-//    @Value("${uploadFolder}")
-//    private String uploadFolder;
-
-    @Value("D:\\eladmin\\file\\radarAcquisitionUpload\\BigFile\\")
+    @Value("D:\\eladmin\\file\\radarAcquisitionUpload\\")
     private String uploadFolder;
 
     /**
@@ -48,11 +47,17 @@ public class UploaderServiceImpl implements UploaderService {
     public FileChunkResultDTO checkChunkExist(FileChunkDTO chunkDTO) {
         //1.检查文件是否已上传过
         //1.1)检查在磁盘中是否存在
-        String fileFolderPath = getFileFolderPath(chunkDTO.getIdentifier());    // 获取MD5加密的id, 找到对应的文件夹
-        logger.info("fileFolderPath-->{}", fileFolderPath);
-        String filePath = getFilePath(chunkDTO.getIdentifier(), chunkDTO.getFilename());    // 拼接
+        // chunkDTO.getIdentifier(): MD5;
+        // fileFolderPath: D:\eladmin\file\radarAcquisitionUpload\MD5\
+        String fileFolderPath = getFileFolderPath(chunkDTO.getIdentifier());
 
-//        判断文件是否存在
+        logger.info("fileFolderPath-->{}", fileFolderPath);
+
+        // chunkDTO.getFilename(): test.zip
+        // 上传文件的存储位置: filePath:D:\eladmin\file\radarAcquisitionUpload\test.zip
+        String filePath = getFilePath(chunkDTO.getIdentifier(), chunkDTO.getFilename());
+
+//        判断要上传的文件test.zip是否存在
         File file = new File(filePath);
         boolean exists = file.exists();
 
@@ -65,7 +70,7 @@ public class UploaderServiceImpl implements UploaderService {
             return new FileChunkResultDTO(true);
         }
 
-//        判断文件夹是否存在; 否的话, 创建.
+//        判断MD5文件夹是否存在; 否的话, 创建.
         File fileFolder = new File(fileFolderPath);
         if (!fileFolder.exists()) {
             boolean mkdirs = fileFolder.mkdirs();
@@ -140,6 +145,12 @@ public class UploaderServiceImpl implements UploaderService {
                         randomAccessFileWriter.write(bytes, 0, len);
                     }
                     randomAccessFileReader.close();
+
+                    // 删除已合并的分片文件
+                    if (chunk.exists()) {
+                        chunk.delete();
+                    }
+
                 }
                 randomAccessFileWriter.close();
             } catch (Exception e) {
@@ -151,7 +162,7 @@ public class UploaderServiceImpl implements UploaderService {
     }
 
     /**
-     * 检查分片是否都存在
+     * 检查分片是否都存在(在合并之前调用的)
      * @param chunkFileFolderPath
      * @param totalChunks
      * @return
@@ -185,7 +196,6 @@ public class UploaderServiceImpl implements UploaderService {
             objectObjectHashMap.put("uploaded", uploaded);
             objectObjectHashMap.put("totalChunks", chunkDTO.getTotalChunks());
             objectObjectHashMap.put("totalSize", chunkDTO.getTotalSize());
-//            objectObjectHashMap.put("path", getFileRelativelyPath(chunkDTO.getIdentifier(), chunkDTO.getFilename()));
             objectObjectHashMap.put("path", chunkDTO.getFilename());
             redisTemplate.opsForHash().putAll(chunkDTO.getIdentifier(), objectObjectHashMap);
         } else {
@@ -200,27 +210,13 @@ public class UploaderServiceImpl implements UploaderService {
      *
      * @param identifier
      * @param filename
-     * @return
+     * @return D:\eladmin\file\radarAcquisitionUpload\UserName\test.zip
      */
     private String getFilePath(String identifier, String filename) {
-        String ext = filename.substring(filename.lastIndexOf("."));
-//        return getFileFolderPath(identifier) + identifier + ext;
-        return uploadFolder + filename;
-    }
+        UserDetails currentUser = SecurityUtils.getCurrentUser();
+        String username = currentUser.getUsername();
 
-    /**
-     * 得到文件的相对路径
-     *
-     * @param identifier
-     * @param filename
-     * @return
-     */
-    private String getFileRelativelyPath(String identifier, String filename) {
-        String ext = filename.substring(filename.lastIndexOf("."));
-        return "/" + identifier.substring(0, 1) + "/" +
-                identifier.substring(1, 2) + "/" +
-                identifier + "/" + identifier
-                + ext;
+        return uploadFolder + username + File.separator + filename;
     }
 
 
@@ -228,22 +224,24 @@ public class UploaderServiceImpl implements UploaderService {
      * 得到分块文件所属的目录
      *
      * @param identifier
-     * @return
+     * @return D:\eladmin\file\radarAcquisitionUpload\UserName\chunks\
      */
     private String getChunkFileFolderPath(String identifier) {
-        return getFileFolderPath(identifier) + "chunks" + File.separator;
+        UserDetails currentUser = SecurityUtils.getCurrentUser();
+        String username = currentUser.getUsername();
+        return uploadFolder + username + File.separator + "chunks" + File.separator;
     }
 
     /**
-     * 得到文件所属的目录
      *
      * @param identifier
-     * @return
+     * @return D:\eladmin\file\radarAcquisitionUpload\UserName\
      */
     private String getFileFolderPath(String identifier) {
-        return uploadFolder + identifier.substring(0, 1) + File.separator +
-                identifier.substring(1, 2) + File.separator +
-                identifier + File.separator;
-//        return uploadFolder;
+        //    获取当前用户名
+        UserDetails currentUser = SecurityUtils.getCurrentUser();
+        String username = currentUser.getUsername();
+
+        return uploadFolder + username + File.separator;
     }
 }

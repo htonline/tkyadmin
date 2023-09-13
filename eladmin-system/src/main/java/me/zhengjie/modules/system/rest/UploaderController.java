@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/big_radar_acquisition_upload")
 public class UploaderController {
     @Autowired
-    private UploaderService uploadService;
+    private UploaderService uploaderService;
 
     /**
      * 检查分片是否存在
@@ -31,7 +31,7 @@ public class UploaderController {
     public RestApiResponse<Object> checkChunkExist(FileChunkDTO chunkDTO) {
         FileChunkResultDTO fileChunkCheckDTO;
         try {
-            fileChunkCheckDTO = uploadService.checkChunkExist(chunkDTO);
+            fileChunkCheckDTO = uploaderService.checkChunkExist(chunkDTO);
             return RestApiResponse.success(fileChunkCheckDTO);
         } catch (Exception e) {
             return RestApiResponse.error(e.getMessage());
@@ -48,7 +48,7 @@ public class UploaderController {
     @PostMapping("/chunk")
     public RestApiResponse<Object> uploadChunk(FileChunkDTO chunkDTO) {
         try {
-            uploadService.uploadChunk(chunkDTO);
+            uploaderService.uploadChunk(chunkDTO);
             return RestApiResponse.success(chunkDTO.getIdentifier());
         } catch (Exception e) {
             return RestApiResponse.error(e.getMessage());
@@ -64,7 +64,7 @@ public class UploaderController {
     @PostMapping("/merge")
     public RestApiResponse<Object> mergeChunks(@RequestBody FileChunkDTO chunkDTO) {
         try {
-            boolean success = uploadService.mergeChunk(chunkDTO.getIdentifier(), chunkDTO.getFilename(), chunkDTO.getTotalChunks());
+            boolean success = uploaderService.mergeChunk(chunkDTO.getIdentifier(), chunkDTO.getFilename(), chunkDTO.getTotalChunks());
             return RestApiResponse.flag(success);
         } catch (Exception e) {
             return RestApiResponse.error(e.getMessage());
