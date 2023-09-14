@@ -48,7 +48,7 @@ public class UploaderServiceImpl implements UploaderService {
         //1.检查文件是否已上传过
         //1.1)检查在磁盘中是否存在
         // chunkDTO.getIdentifier(): MD5;
-        // fileFolderPath: D:\eladmin\file\radarAcquisitionUpload\MD5\
+        // fileFolderPath: D:\eladmin\file\radarAcquisitionUpload\admin\MD5\
         String fileFolderPath = getFileFolderPath(chunkDTO.getIdentifier());
 
         logger.info("fileFolderPath-->{}", fileFolderPath);
@@ -224,12 +224,12 @@ public class UploaderServiceImpl implements UploaderService {
      * 得到分块文件所属的目录
      *
      * @param identifier
-     * @return D:\eladmin\file\radarAcquisitionUpload\UserName\chunks\
+     * @return D:\eladmin\file\radarAcquisitionUpload\UserName\chunks\MD5\
      */
     private String getChunkFileFolderPath(String identifier) {
         UserDetails currentUser = SecurityUtils.getCurrentUser();
         String username = currentUser.getUsername();
-        return uploadFolder + username + File.separator + "chunks" + File.separator;
+        return uploadFolder + username + File.separator + "chunks" + File.separator + identifier + File.separator;
     }
 
     /**
