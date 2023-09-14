@@ -102,7 +102,7 @@ swagger:
 ip:
   local-parsing: true
 
-# 文件存储路径
+# 文件存储路径(同时也是外网可以访问地址)
 file:
   mac:
     path: ~/file/
@@ -111,8 +111,8 @@ file:
     path: /home/eladmin/file/
     avatar: /home/eladmin/avatar/
   windows:
-    path: C:\eladmin\file\
-    avatar: C:\eladmin\avatar\
+    path: D:\eladmin\file\
+    avatar: D:\eladmin\avatar\
   # 文件大小 /M
   maxSize: 100000
   avatarMaxSize: 5
