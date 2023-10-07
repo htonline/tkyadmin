@@ -34,13 +34,10 @@ import org.springframework.data.domain.Pageable;
 import me.zhengjie.utils.PageUtil;
 import me.zhengjie.utils.QueryHelp;
 
-import java.io.FileOutputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.io.IOException;
-import java.io.File;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 
@@ -134,29 +131,60 @@ public class RadarDiseasetypePicturesServiceImpl implements RadarDiseasetypePict
 
         //word模板地址获取方式：这种方法不会在linux或者jar上失效(resources目录下)
         ClassPathResource classPathResource = new ClassPathResource("template/doc/templateDoc.docx");
-        String resource = classPathResource.getURL().getPath();
-        // 读取Word文件
-        XWPFTemplate template = XWPFTemplate.compile(resource);
-        // 将值付给文档
-        template.render(map);
 
-        //=================生成文件保存在本地D盘某目录下=================
-        String temDir="D:/eladmin/"+File.separator+"file/word/";    // 生成临时文件存放地址
-        Long time = new Date().getTime();                           // 生成文件名
-        String formatSuffix = ".docx";                              // 生成的word格式
-        String fileName = time + formatSuffix;                      // 拼接后的文件名
-        FileOutputStream fos = new FileOutputStream(temDir+fileName);
-        template.write(fos);
-        //=================生成word到设置浏览默认下载地址=================
-        // 设置强制下载不打开
-        response.setContentType("application/force-download");
-        // 设置文件名
-        response.addHeader("Content-Disposition", "attachment;fileName=" + fileName);
-        OutputStream out = response.getOutputStream();
-        template.write(out);
-        out.flush();
-        out.close();
-        template.close();
+        try (InputStream inputStream = classPathResource.getInputStream()) {
+            XWPFTemplate template = XWPFTemplate.compile(inputStream);  // 直接使用 InputStream
+
+            // 假设 'map' 是一个包含要替换模板中值的 Map<String, Object>
+            template.render(map);
+
+            //=================生成文件保存在本地D盘某目录下=================
+            String temDir="D:/eladmin/"+File.separator+"file/word/";    // 生成临时文件存放地址
+            Long time = new Date().getTime();                           // 生成文件名
+            String formatSuffix = ".docx";                              // 生成的word格式
+            String fileName = time + formatSuffix;                      // 拼接后的文件名
+            FileOutputStream fos = new FileOutputStream(temDir+fileName);
+            template.write(fos);
+            //=================生成word到设置浏览默认下载地址=================
+            // 设置强制下载不打开
+            response.setContentType("application/force-download");
+            // 设置文件名
+            response.addHeader("Content-Disposition", "attachment;fileName=" + fileName);
+            OutputStream out = response.getOutputStream();
+            template.write(out);
+            out.flush();
+            out.close();
+
+            // 渲染模板后关闭模板
+            template.close();
+        } catch (IOException e) {
+            // 处理可能发生的读取资源或渲染模板时的任何 IOException
+            e.printStackTrace();
+        }
+
+//        String resource = classPathResource.getURL().getPath();
+//        // 读取Word文件
+//        XWPFTemplate template = XWPFTemplate.compile(resource);
+//        // 将值付给文档
+//        template.render(map);
+//
+//        //=================生成文件保存在本地D盘某目录下=================
+//        String temDir="D:/eladmin/"+File.separator+"file/word/";    // 生成临时文件存放地址
+//        Long time = new Date().getTime();                           // 生成文件名
+//        String formatSuffix = ".docx";                              // 生成的word格式
+//        String fileName = time + formatSuffix;                      // 拼接后的文件名
+//        FileOutputStream fos = new FileOutputStream(temDir+fileName);
+//        template.write(fos);
+//        //=================生成word到设置浏览默认下载地址=================
+//        // 设置强制下载不打开
+//        response.setContentType("application/force-download");
+//        // 设置文件名
+//        response.addHeader("Content-Disposition", "attachment;fileName=" + fileName);
+//        OutputStream out = response.getOutputStream();
+//        template.write(out);
+//        out.flush();
+//        out.close();
+//        template.close();
 
     }
 }
