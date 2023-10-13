@@ -1,9 +1,13 @@
 package me.zhengjie.modules.system.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import me.zhengjie.modules.system.domain.RadarAcquisitionUpload;
+import me.zhengjie.modules.system.repository.RadarAcquisitionUploadRepository;
+import me.zhengjie.modules.system.service.RadarAcquisitionUploadService;
 import me.zhengjie.modules.system.service.UploaderService;
 import me.zhengjie.modules.system.service.dto.FileChunkDTO;
 import me.zhengjie.modules.system.service.dto.FileChunkResultDTO;
+import me.zhengjie.utils.FileUtil;
 import me.zhengjie.utils.SecurityUtils;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
@@ -16,6 +20,8 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.io.*;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -34,6 +40,9 @@ public class UploaderServiceImpl implements UploaderService {
 
     @Value("D:\\eladmin\\file\\radarAcquisitionUpload\\")
     private String uploadFolder;
+
+    @Resource
+    private RadarAcquisitionUploadRepository radarAcquisitionUploadRepository;
 
     /**
      * 检查文件是否存在，如果存在则跳过该文件的上传，如果不存在，返回需要上传的分片集合
@@ -89,7 +98,7 @@ public class UploaderServiceImpl implements UploaderService {
     @Override
     public void uploadChunk(FileChunkDTO chunkDTO) {
         //分块的目录
-        String chunkFileFolderPath = getChunkFileFolderPath(chunkDTO.getIdentifier());
+        String chunkFileFolderPath = getChunkFileFolderPath(chunkDTO.getIdentifier(), chunkDTO.getFilename());
         logger.info("分块的目录 -> {}", chunkFileFolderPath);
         File chunkFileFolder = new File(chunkFileFolderPath);
         if (!chunkFileFolder.exists()) {
@@ -123,7 +132,8 @@ public class UploaderServiceImpl implements UploaderService {
      * @param filename
      */
     private boolean mergeChunks(String identifier, String filename, Integer totalChunks) {
-        String chunkFileFolderPath = getChunkFileFolderPath(identifier);
+        String fileFolderPath = getFileFolderPath(identifier);
+        String chunkFileFolderPath = getChunkFileFolderPath(identifier, filename);
         String filePath = getFilePath(identifier, filename);
         // 检查分片是否都存在
         if (checkChunks(chunkFileFolderPath, totalChunks)) {
@@ -156,8 +166,26 @@ public class UploaderServiceImpl implements UploaderService {
             } catch (Exception e) {
                 return false;
             }
+
+
+            // ======如果文件上传完成,就往radar_acquisition_upload数据库里加一条数据
+            RadarAcquisitionUpload one = new RadarAcquisitionUpload();
+            one.setFileName(filename);
+            one.setFilePath(filePath);
+            Timestamp currentTime = new Timestamp(System.currentTimeMillis());  // 获取当前时间戳(sql)
+            one.setCreatTime(currentTime);
+            UserDetails currentUser = SecurityUtils.getCurrentUser();           // 获取当前用户名
+            one.setByUser(currentUser.getUsername());
+            radarAcquisitionUploadRepository.save(one);
+
+            unzip_hutool(filePath, fileFolderPath);     // 将上传的压缩包解压到上传目录
+
+
+
+
             return true;
         }
+
         return false;
     }
 
@@ -224,18 +252,18 @@ public class UploaderServiceImpl implements UploaderService {
      * 得到分块文件所属的目录
      *
      * @param identifier
-     * @return D:\eladmin\file\radarAcquisitionUpload\UserName\chunks\MD5\
+     * @return D:\eladmin\file\radarAcquisitionUpload\UserName\chunks\文件名\MD5\
      */
-    private String getChunkFileFolderPath(String identifier) {
+    private String getChunkFileFolderPath(String identifier, String filename) {
         UserDetails currentUser = SecurityUtils.getCurrentUser();
         String username = currentUser.getUsername();
-        return uploadFolder + username + File.separator + "chunks" + File.separator + identifier + File.separator;
+        return uploadFolder + username + File.separator + "chunks" + File.separator +filename+File.separator + identifier + File.separator;
     }
 
     /**
      *
      * @param identifier
-     * @return D:\eladmin\file\radarAcquisitionUpload\UserName\
+     * @return D:\eladmin\file\radarAcquisitionUpload\UserName
      */
     private String getFileFolderPath(String identifier) {
         //    获取当前用户名
@@ -243,5 +271,27 @@ public class UploaderServiceImpl implements UploaderService {
         String username = currentUser.getUsername();
 
         return uploadFolder + username + File.separator;
+    }
+
+    /**
+     * 功能描述：解压 （利用hutool）
+     *
+     * @param zipFile 压缩包路径               例如："D:\eladmin\file\radarAcquisitionUpload\UserName\test.zip";
+     * @param outDir  解压到的目录(支持创建)     例如："D:\eladmin\file\radarAcquisitionUpload\UserName"
+     * @return void
+     * @author
+     * @date 2022/8/3 17:28
+     */
+    public static void unzip_hutool(String zipFile, String outDir) {
+        // 使用反斜杠 "\" 进行分割
+        String[] pathParts = zipFile.split("\\\\");
+        // 获取倒数第一个元素，即 "test.zip"
+        String targetPart = pathParts[pathParts.length - 1];
+
+        // 将 "test.zip" 分割以获取 "test"
+        String[] fileNameParts = targetPart.split("\\.");
+        String targetName = fileNameParts[0];
+        outDir += File.separator + targetName;
+        cn.hutool.core.util.ZipUtil.unzip(zipFile, outDir);
     }
 }
