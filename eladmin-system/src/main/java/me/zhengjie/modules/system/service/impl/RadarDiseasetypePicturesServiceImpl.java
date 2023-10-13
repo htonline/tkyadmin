@@ -27,17 +27,20 @@ import me.zhengjie.modules.system.service.dto.RadarDiseasetypePicturesDto;
 import me.zhengjie.modules.system.service.dto.RadarDiseasetypePicturesQueryCriteria;
 import me.zhengjie.modules.system.service.mapstruct.RadarDiseasetypePicturesMapper;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import me.zhengjie.utils.PageUtil;
 import me.zhengjie.utils.QueryHelp;
+import org.springframework.util.StreamUtils;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 
@@ -129,26 +132,27 @@ public class RadarDiseasetypePicturesServiceImpl implements RadarDiseasetypePict
         map.put("age", "18");
         map.put("date", "2023-07-01");
 
-        //word模板地址获取方式：这种方法不会在linux或者jar上失效(resources目录下)
-        ClassPathResource classPathResource = new ClassPathResource("template/doc/templateDoc.docx");
+        try {
 
-        // String resource = classPathResource.getURL().getPath();
-        // 读取Word文件
-        // XWPFTemplate template = XWPFTemplate.compile(resource);
-        try (InputStream inputStream = classPathResource.getInputStream()) {
-            XWPFTemplate template = XWPFTemplate.compile(inputStream);  // 直接使用 InputStream
+            //InputStream inputStream = getClass().getClassLoader().getResourceAsStream("template/doc/templateDoc.docx");
+
+            ClassPathResource resource = new ClassPathResource("template/doc/templateDoc.docx");
+            File sourceFile = resource.getFile();
+            InputStream inputStream = resource.getInputStream();
+
+
+            XWPFTemplate template = XWPFTemplate.compile(inputStream);
 
             // 假设 'map' 是一个包含要替换模板中值的 Map<String, Object>
             template.render(map);
 
             //=================生成文件保存在本地D盘某目录下=================
-            String temDir="D:/eladmin/"+File.separator+"file/word/";    // 生成临时文件存放地址
+            String tempDir ="D:/eladmin"+File.separator+"file/word/";    // 生成临时文件存放地址
             Long time = new Date().getTime();                           // 生成文件名
-            String formatSuffix = ".docx";                              // 生成的word格式
-            String fileName = time + formatSuffix;                      // 拼接后的文件名
-            FileOutputStream fos = new FileOutputStream(temDir+fileName);
+            String fileName = time + ".docx";                           // 拼接后的文件名
+            FileOutputStream fos = new FileOutputStream(tempDir+fileName);
             template.write(fos);
-            //=================生成word到设置浏览默认下载地址=================
+
             // 设置强制下载不打开
             response.setContentType("application/force-download");
             // 设置文件名
