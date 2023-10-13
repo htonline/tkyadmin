@@ -146,7 +146,7 @@ public class RadarPictureServiceImpl implements RadarPictureService {
         String type = FileUtil.getFileType(suffix);
 //        4.文件写入磁盘（将上传的文件保存到指定路径中。）获取了文件保存路径的配置信息。
 //        File.separator 是一个表示文件路径分隔符的常量，用于在不同操作系统上正确处理文件路径的分隔符。使得你的代码可以在不同的操作系统上运行而不需要手动更改文件路径分隔符。
-//        properties.getPath().getPath(): C:\eladmin\file\
+//        properties.getPath().getPath(): D:\eladmin\file\
         String filePath = properties.getPath().getPath() + type;  // 文件存储路径(不包括文件名,文件名的添加在FileUtil.upload()方法中)
         if (radarDiseasetypePictures.getCategory1() != null && !radarDiseasetypePictures.getCategory1().equals("null")) {
             filePath += File.separator + radarDiseasetypePictures.getCategory1();
