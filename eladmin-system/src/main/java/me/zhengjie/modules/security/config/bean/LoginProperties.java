@@ -119,14 +119,18 @@ public class LoginProperties {
         protected char[] alphas() {
             // 生成随机数字和运算符
             int n1 = num(1, 10), n2 = num(1, 10);
-            int opt = num(3);
+            int n3=num(1,10),n4=num(1,10);
+//            int opt = num(3);
 
             // 计算结果
-            int res = new int[]{n1 + n2, n1 - n2, n1 * n2}[opt];
+//            int res = new int[]{n1 + n2, n1 - n2, n1 * n2}[opt];
             // 转换为字符运算符
-            char optChar = "+-x".charAt(opt);
+//            char optChar = "+-x".charAt(opt);
+            int res=n1*1000+n2*100+n3*10+n4;
 
-            this.setArithmeticString(String.format("%s%c%s=?", n1, optChar, n2));
+//            this.setArithmeticString(String.format("%s%c%s=?", n1, optChar, n2));
+            this.setArithmeticString(String.format("%s%s%s%s", n1,  n2,n3,n4));
+
             this.chars = String.valueOf(res);
 
             return chars.toCharArray();
