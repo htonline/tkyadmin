@@ -18,6 +18,7 @@ package me.zhengjie.modules.system.service;
 import me.zhengjie.modules.system.domain.Disease;
 import me.zhengjie.modules.system.service.dto.DiseaseDto;
 import me.zhengjie.modules.system.service.dto.DiseaseQueryCriteria;
+import me.zhengjie.modules.system.service.dto.RadarDiseasetypePicturesDto;
 import org.springframework.data.domain.Pageable;
 import java.util.Map;
 import java.util.List;
@@ -80,4 +81,7 @@ public interface DiseaseService {
     * @throws IOException /
     */
     void download(List<DiseaseDto> all, HttpServletResponse response) throws IOException;
+
+    void downloadWord(DiseaseQueryCriteria criteria, HttpServletResponse response) throws IOException;
+
 }

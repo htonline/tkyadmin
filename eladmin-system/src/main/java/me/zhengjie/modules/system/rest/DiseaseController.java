@@ -19,6 +19,7 @@ import me.zhengjie.annotation.Log;
 import me.zhengjie.modules.system.domain.Disease;
 import me.zhengjie.modules.system.service.DiseaseService;
 import me.zhengjie.modules.system.service.dto.DiseaseQueryCriteria;
+import me.zhengjie.modules.system.service.dto.RadarDiseasetypePicturesQueryCriteria;
 import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -49,6 +50,14 @@ public class DiseaseController {
     @PreAuthorize("@el.check('disease:list')")
     public void exportDisease(HttpServletResponse response, DiseaseQueryCriteria criteria) throws IOException {
         diseaseService.download(diseaseService.queryAll(criteria), response);
+    }
+
+    @Log("模板导出Word")
+    @ApiOperation("模板导出Word")
+    @GetMapping(value = "/templatedownload")
+    @PreAuthorize("@el.check('radarDiseasetypePictures:list')")
+    public void exportRadarDiseasetypePicturesWordTemplate(HttpServletResponse response, DiseaseQueryCriteria criteria) throws IOException {
+        diseaseService.downloadWord(criteria, response);
     }
 
     @GetMapping

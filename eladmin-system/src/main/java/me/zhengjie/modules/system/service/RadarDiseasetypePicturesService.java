@@ -80,11 +80,4 @@ public interface RadarDiseasetypePicturesService {
     * @throws IOException /
     */
     void download(List<RadarDiseasetypePicturesDto> all, HttpServletResponse response) throws IOException;
-    /**
-     * 导出Word模板
-     * @param all 复制上面的，但应该用不上
-     * @param response /
-     * @throws IOException /
-     */
-    void downloadWord(List<RadarDiseasetypePicturesDto> all, HttpServletResponse response) throws IOException;
 }

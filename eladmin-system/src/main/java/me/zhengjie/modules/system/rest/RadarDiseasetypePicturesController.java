@@ -63,14 +63,6 @@ public class RadarDiseasetypePicturesController {
         radarDiseasetypePicturesService.download(radarDiseasetypePicturesService.queryAll(criteria), response);
     }
 
-    @Log("模板导出Word")
-    @ApiOperation("模板导出Word")
-    @GetMapping(value = "/templatedownload")
-    @PreAuthorize("@el.check('radarDiseasetypePictures:list')")
-    public void exportRadarDiseasetypePicturesWordTemplate(HttpServletResponse response, RadarDiseasetypePicturesQueryCriteria criteria) throws IOException {
-        radarDiseasetypePicturesService.downloadWord(radarDiseasetypePicturesService.queryAll(criteria), response);
-    }
-
     @GetMapping
     @Log("查询radarDiseasetypePictures")
     @ApiOperation("查询radarDiseasetypePictures")

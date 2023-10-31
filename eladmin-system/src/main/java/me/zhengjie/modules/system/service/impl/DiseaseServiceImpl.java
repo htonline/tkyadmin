@@ -15,7 +15,9 @@
 */
 package me.zhengjie.modules.system.service.impl;
 
+import com.deepoove.poi.XWPFTemplate;
 import me.zhengjie.modules.system.domain.Disease;
+import me.zhengjie.modules.system.service.dto.RadarDiseasetypePicturesDto;
 import me.zhengjie.utils.ValidationUtil;
 import me.zhengjie.utils.FileUtil;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import me.zhengjie.modules.system.service.DiseaseService;
 import me.zhengjie.modules.system.service.dto.DiseaseDto;
 import me.zhengjie.modules.system.service.dto.DiseaseQueryCriteria;
 import me.zhengjie.modules.system.service.mapstruct.DiseaseMapper;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import cn.hutool.core.lang.Snowflake;
@@ -32,12 +35,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import me.zhengjie.utils.PageUtil;
 import me.zhengjie.utils.QueryHelp;
-import java.util.List;
-import java.util.Map;
-import java.io.IOException;
+
+import java.io.*;
+import java.util.*;
 import javax.servlet.http.HttpServletResponse;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 
 /**
 * @website https://el-admin.vip
@@ -75,7 +76,7 @@ public class DiseaseServiceImpl implements DiseaseService {
     @Transactional(rollbackFor = Exception.class)
     public DiseaseDto create(Disease resources) {
         Snowflake snowflake = IdUtil.createSnowflake(1, 1);
-        resources.setDiseaseId(snowflake.nextId()); 
+        resources.setDiseaseId(snowflake.nextId());
         return diseaseMapper.toDto(diseaseRepository.save(resources));
     }
 
@@ -125,5 +126,53 @@ public class DiseaseServiceImpl implements DiseaseService {
             list.add(map);
         }
         FileUtil.downloadExcel(list, response);
+    }
+
+    @Override
+    public void downloadWord(DiseaseQueryCriteria criteria, HttpServletResponse response) throws IOException {
+
+        // 给文档内的变量设值
+        Map<String, Object> map = new HashMap<>();
+        map.put("name", "李明");
+        map.put("age", "18");
+        map.put("date", "2023-07-01");
+
+        try {
+
+            //InputStream inputStream = getClass().getClassLoader().getResourceAsStream("template/doc/templateDoc.docx");
+
+            ClassPathResource resource = new ClassPathResource("template/doc/templateDoc.docx");
+            File sourceFile = resource.getFile();
+            InputStream inputStream = resource.getInputStream();
+
+
+            XWPFTemplate template = XWPFTemplate.compile(inputStream);
+
+            // 假设 'map' 是一个包含要替换模板中值的 Map<String, Object>
+            template.render(map);
+
+            //=================生成文件保存在本地D盘某目录下=================
+            String tempDir ="D:/eladmin"+File.separator+"file/word/";    // 生成临时文件存放地址
+            Long time = new Date().getTime();                           // 生成文件名
+            String fileName = time + ".docx";                           // 拼接后的文件名
+            FileOutputStream fos = new FileOutputStream(tempDir+fileName);
+            template.write(fos);
+
+            // 设置强制下载不打开
+            response.setContentType("application/force-download");
+            // 设置文件名
+            response.addHeader("Content-Disposition", "attachment;fileName=" + fileName);
+            OutputStream out = response.getOutputStream();
+            template.write(out);
+            out.flush();
+            out.close();
+
+            // 渲染模板后关闭模板
+            template.close();
+        } catch (IOException e) {
+            // 处理可能发生的读取资源或渲染模板时的任何 IOException
+            e.printStackTrace();
+        }
+
     }
 }
