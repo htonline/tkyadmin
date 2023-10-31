@@ -16,8 +16,9 @@
 package me.zhengjie.modules.system.service.impl;
 
 import com.deepoove.poi.XWPFTemplate;
+import com.deepoove.poi.data.PictureRenderData;
+import com.deepoove.poi.data.Pictures;
 import me.zhengjie.modules.system.domain.Disease;
-import me.zhengjie.modules.system.service.dto.RadarDiseasetypePicturesDto;
 import me.zhengjie.utils.ValidationUtil;
 import me.zhengjie.utils.FileUtil;
 import lombok.RequiredArgsConstructor;
@@ -133,15 +134,38 @@ public class DiseaseServiceImpl implements DiseaseService {
 
         // 给文档内的变量设值
         Map<String, Object> map = new HashMap<>();
-        map.put("name", "李明");
-        map.put("age", "18");
-        map.put("date", "2023-07-01");
+        map.put("dis_Number", criteria.getDiseaseId());     // 设置编号
+        map.put("dis_RoadName", criteria.getRemark());     // 设置道路名称
+        map.put("dis_Type", criteria.getDiseaseType());     // 设置病害体类型
+        map.put("dis_SizeInfor", criteria.getDiseaseSize());    // 设置尺寸
+        map.put("dis_TopDepth", criteria.getStartDepth());  // 设置顶深
+        map.put("dis_BottomDepth", criteria.getEndDepth());    // 设置底深
+
+
+        String longLat = criteria.getLongLat();
+        String[] parts = longLat.split(",");
+        if (parts.length == 2) {
+            String longitude = parts[0].trim(); // 获取经度
+            String latitude = parts[1].trim();  // 获取纬度
+//            传给百度地图的经纬度参数，中间不能有空格; 不然无法返回对应的图片
+            String longLatResult = longitude + "," + latitude;
+            map.put("dis_Lon", longitude);
+            map.put("dis_Lat", latitude);
+
+            String mapImgURL = "http://api.map.baidu.com/staticimage?width=270&height=227&zoom=16&center="+longLatResult;
+            PictureRenderData mapImg = Pictures.ofUrl(mapImgURL).create();
+            map.put("mapImg", mapImg);
+
+        } else {
+            map.put("dis_Lon", "无法正确获取经度数据。");
+            map.put("dis_Lat", "无法正确获取纬度数据。");
+        }
 
         try {
 
             //InputStream inputStream = getClass().getClassLoader().getResourceAsStream("template/doc/templateDoc.docx");
 
-            ClassPathResource resource = new ClassPathResource("template/doc/templateDoc.docx");
+            ClassPathResource resource = new ClassPathResource("template/doc/diseaseCard.docx");
             File sourceFile = resource.getFile();
             InputStream inputStream = resource.getInputStream();
 
