@@ -16,6 +16,7 @@
 package me.zhengjie.modules.system.rest;
 
 import me.zhengjie.annotation.Log;
+import me.zhengjie.modules.system.domain.Picture;
 import me.zhengjie.modules.system.domain.PictureRadarSpectrum;
 import me.zhengjie.modules.system.service.PictureRadarSpectrumService;
 import me.zhengjie.modules.system.service.dto.PictureRadarSpectrumQueryCriteria;
@@ -27,6 +28,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.annotations.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.io.IOException;
 import javax.servlet.http.HttpServletResponse;
 
@@ -82,6 +85,34 @@ public class PictureRadarSpectrumController {
     @PreAuthorize("@el.check('pictureRadarSpectrum:del')")
     public ResponseEntity<Object> deletePictureRadarSpectrum(@RequestBody Integer[] ids) {
         pictureRadarSpectrumService.deleteAll(ids);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    //    上传现场图片，将图片与病害数据关联
+    @ApiOperation("上传图片")
+    @PostMapping(value = "/uploadSpectrumPicture")
+    public ResponseEntity<Object> uploadPicture(@RequestParam String fileUrl,
+                                                @RequestParam String tunnelId, @RequestParam String remark,
+                                                @RequestParam String remark1, @RequestParam String remark2,
+                                                @RequestParam String remark3, @RequestParam String remark4,
+                                                @RequestParam String remark5, @RequestParam String remark6,
+                                                @RequestParam String remark7, @RequestParam String remark8,
+                                                @RequestParam("file") MultipartFile file){
+        PictureRadarSpectrum pictureRadarSpectrum = new PictureRadarSpectrum();
+        pictureRadarSpectrum.setFileUrl(fileUrl);
+        pictureRadarSpectrum.setTunnelId(Integer.parseInt(tunnelId));
+        pictureRadarSpectrum.setRemark(remark);
+        pictureRadarSpectrum.setRemark1(remark1);
+        pictureRadarSpectrum.setRemark2(remark2);
+        pictureRadarSpectrum.setRemark3(remark3);
+        pictureRadarSpectrum.setRemark4(remark4);
+        pictureRadarSpectrum.setRemark5(remark5);
+        pictureRadarSpectrum.setRemark6(remark6);
+        pictureRadarSpectrum.setRemark7(remark7);
+        pictureRadarSpectrum.setRemark8(remark8);
+
+        pictureRadarSpectrumService.uploadSpectrumPicture(pictureRadarSpectrum,file);
+
         return new ResponseEntity<>(HttpStatus.OK);
     }
 }

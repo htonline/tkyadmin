@@ -35,6 +35,7 @@ import java.io.Serializable;
 public class PictureRadarSpectrum implements Serializable {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "spectrum_id")
     @ApiModelProperty(value = "雷达图谱id")
     private Integer spectrumId;

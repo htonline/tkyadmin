@@ -19,6 +19,8 @@ import me.zhengjie.modules.system.domain.PictureRadarSpectrum;
 import me.zhengjie.modules.system.service.dto.PictureRadarSpectrumDto;
 import me.zhengjie.modules.system.service.dto.PictureRadarSpectrumQueryCriteria;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.Map;
 import java.util.List;
 import java.io.IOException;
@@ -80,4 +82,6 @@ public interface PictureRadarSpectrumService {
     * @throws IOException /
     */
     void download(List<PictureRadarSpectrumDto> all, HttpServletResponse response) throws IOException;
+
+    void uploadSpectrumPicture(PictureRadarSpectrum pictureRadarSpectrum, MultipartFile file);
 }

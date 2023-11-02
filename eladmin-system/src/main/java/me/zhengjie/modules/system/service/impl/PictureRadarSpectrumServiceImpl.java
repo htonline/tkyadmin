@@ -15,6 +15,8 @@
 */
 package me.zhengjie.modules.system.service.impl;
 
+import cn.hutool.core.util.ObjectUtil;
+import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.modules.system.domain.PictureRadarSpectrum;
 import me.zhengjie.utils.ValidationUtil;
 import me.zhengjie.utils.FileUtil;
@@ -30,6 +32,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import me.zhengjie.utils.PageUtil;
 import me.zhengjie.utils.QueryHelp;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.io.IOException;
@@ -72,7 +77,8 @@ public class PictureRadarSpectrumServiceImpl implements PictureRadarSpectrumServ
     @Override
     @Transactional(rollbackFor = Exception.class)
     public PictureRadarSpectrumDto create(PictureRadarSpectrum resources) {
-        return pictureRadarSpectrumMapper.toDto(pictureRadarSpectrumRepository.save(resources));
+//        return pictureRadarSpectrumMapper.toDto(pictureRadarSpectrumRepository.save(resources));
+            return pictureRadarSpectrumMapper.toDto(resources);
     }
 
     @Override
@@ -110,5 +116,19 @@ public class PictureRadarSpectrumServiceImpl implements PictureRadarSpectrumServ
             list.add(map);
         }
         FileUtil.downloadExcel(list, response);
+    }
+
+    @Override
+    public void uploadSpectrumPicture(PictureRadarSpectrum pictureRadarSpectrum, MultipartFile multipartFile) {
+        String filePath = "D:\\WorkFile\\FrontCode\\IofTV-Screen-web\\src\\assets\\img\\pictures\\radarSpectrum"+ File.separator + pictureRadarSpectrum.getFileUrl() + File.separator;
+        File file = FileUtil.upload(multipartFile, filePath);
+        //        5.如果上传文件失败（file为空），则抛出一个BadRequestException异常，提示上传失败。
+        if (ObjectUtil.isNull(file)) {
+            throw new BadRequestException("上传失败");
+        }
+
+        pictureRadarSpectrum.setRemark(multipartFile.getOriginalFilename()); // 设置文件名称
+        pictureRadarSpectrum.setFileUrl(pictureRadarSpectrum.getFileUrl()+"/"+multipartFile.getOriginalFilename());   // 设置文件存储路径
+        pictureRadarSpectrumRepository.save(pictureRadarSpectrum);
     }
 }
