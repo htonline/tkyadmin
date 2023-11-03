@@ -79,7 +79,6 @@ public class UploaderServiceImpl implements UploaderService {
 //        块不等于空:说明之前上传过这个文件（缓存中有它的分块文件） && 缓存中分块的数量等于文件的总块数:说明这个块已经上传完了 && 文件已经存在
         if (uploaded != null && uploaded.size() == chunkDTO.getTotalChunks() && exists) {
 //            满足这三个条件: 实现秒传（不用传了）
-            // TODO: file复制; 存入radar_acquisition_upload表中
             String parentPath = file.getParent();
             String fileName = file.getName();
             String newName = getNewFileName(fileName);
