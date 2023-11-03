@@ -1,19 +1,15 @@
 package me.zhengjie.modules.system.service.impl;
 
-import io.swagger.models.auth.In;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.modules.system.domain.RadarAcquisitionUpload;
 import me.zhengjie.modules.system.repository.RadarAcquisitionUploadRepository;
-import me.zhengjie.modules.system.service.RadarAcquisitionUploadService;
 import me.zhengjie.modules.system.service.UploaderService;
 import me.zhengjie.modules.system.service.dto.FileChunkDTO;
 import me.zhengjie.modules.system.service.dto.FileChunkResultDTO;
-import me.zhengjie.utils.FileUtil;
 import me.zhengjie.utils.SecurityUtils;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,7 +26,7 @@ import java.util.*;
  * @date 2023-11-03 09:58
  * @describe 实现大文件的分片上传;
  *  1.该功能由 史文幸学姐 提供实现思路, 并在她本人的强烈要求下🐼, 在此题名标注。(删除此行注释或可导致代码运行不畅, Bug多多. 后来者慎删 !!!)
- *  注意: 史文幸学姐 的建议是不可忽视的，她是这个功能的幕后推手，保证了它的成功实施。让我们感谢史文幸学姐的贡献！(chatGPT生成版)
+ *  注意: 史文幸学姐 的建议是不可忽视的，她是这个功能的幕后推手，保证了它的成功实施。让我们在这里感谢 史文幸学姐 的贡献！(chatGPT生成版)
  */
 @Service
 @SuppressWarnings("all")
