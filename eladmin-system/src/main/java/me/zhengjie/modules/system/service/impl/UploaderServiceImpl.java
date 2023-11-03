@@ -1,5 +1,6 @@
 package me.zhengjie.modules.system.service.impl;
 
+import io.swagger.models.auth.In;
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.modules.system.domain.RadarAcquisitionUpload;
 import me.zhengjie.modules.system.repository.RadarAcquisitionUploadRepository;
@@ -26,8 +27,10 @@ import java.util.*;
 
 /**
  * @author Zuohaitao
- * @date 2023-09-13 10:15
- * @describe
+ * @date 2023-11-03 09:58
+ * @describe 实现大文件的分片上传;
+ *  1.该功能由 史文幸学姐 提供实现思路, 并在她本人的强烈要求下🐼, 在此题名标注。(删除此行注释或可导致代码运行不畅, Bug多多. 后来者慎删 !!!)
+ *  注意: 史文幸学姐 的建议是不可忽视的，她是这个功能的幕后推手，保证了它的成功实施。让我们感谢史文幸学姐的贡献！(chatGPT生成版)
  */
 @Service
 @SuppressWarnings("all")
@@ -71,15 +74,45 @@ public class UploaderServiceImpl implements UploaderService {
         boolean exists = file.exists();
 
         //1.2)检查Redis中是否存在,并且所有分片已经上传完成。
-//        将所有的块取出, 放入集合中
+//        将缓存中所有的块取出, 放入集合uploaded中
         Set<Integer> uploaded = (Set<Integer>) redisTemplate.opsForHash().get(chunkDTO.getIdentifier(), "uploaded");
-//        块不等于空:说明有这个值 && 大小等于每个分块的大小:说明这个块已经上传完了 && 文件已经存在
+//        块不等于空:说明之前上传过这个文件（缓存中有它的分块文件） && 缓存中分块的数量等于文件的总块数:说明这个块已经上传完了 && 文件已经存在
         if (uploaded != null && uploaded.size() == chunkDTO.getTotalChunks() && exists) {
 //            满足这三个条件: 实现秒传（不用传了）
+            // TODO: file复制; 存入radar_acquisition_upload表中
+            String parentPath = file.getParent();
+            String fileName = file.getName();
+            String newName = getNewFileName(fileName);
+            File newFile = new File(parentPath, newName);
+            try {
+                FileInputStream fis = new FileInputStream(file);
+                FileOutputStream fos = new FileOutputStream(newFile);
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+
+                while ((bytesRead = fis.read(buffer)) != -1) {
+                    fos.write(buffer, 0, bytesRead);
+                }
+
+                fis.close();
+                fos.close();
+
+                System.out.println("文件复制成功！");
+                // ==================================================
+                RadarAcquisitionUpload newFileRepeat = new RadarAcquisitionUpload();
+                newFileRepeat.setFileName(newFile.getName());
+                newFileRepeat.setFilePath(newFile.getPath());
+                UserDetails currentUser = SecurityUtils.getCurrentUser();           // 获取当前用户名
+                newFileRepeat.setByUser(currentUser.getUsername());
+                radarAcquisitionUploadRepository.save(newFileRepeat);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             return new FileChunkResultDTO(true);
         }
 
-//        判断MD5文件夹是否存在; 否的话, 创建.
+//        判断用户文件夹是否存在; 否的话, 创建.
         File fileFolder = new File(fileFolderPath);
         if (!fileFolder.exists()) {
             boolean mkdirs = fileFolder.mkdirs();
@@ -178,7 +211,7 @@ public class UploaderServiceImpl implements UploaderService {
             one.setByUser(currentUser.getUsername());
             radarAcquisitionUploadRepository.save(one);
 
-            unzip_hutool(filePath, fileFolderPath);     // 将上传的压缩包解压到上传目录
+            //unzip_hutool(filePath, fileFolderPath);     // 将上传的压缩包解压到上传目录
 
 
 
@@ -187,6 +220,19 @@ public class UploaderServiceImpl implements UploaderService {
         }
 
         return false;
+    }
+
+    private static String getNewFileName(String originalFileName) {
+        int dotIndex = originalFileName.lastIndexOf('.');
+        String name = originalFileName.substring(0, dotIndex);
+        String extension = originalFileName.substring(dotIndex);
+        long currentTimeMillis = System.currentTimeMillis();
+        Date currentTime = new Date(currentTimeMillis);
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+        String formattedTime = dateFormat.format(currentTime);
+
+        return name + "("+formattedTime+")" + extension;
     }
 
     /**
