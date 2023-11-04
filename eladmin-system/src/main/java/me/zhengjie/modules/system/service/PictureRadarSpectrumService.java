@@ -83,5 +83,5 @@ public interface PictureRadarSpectrumService {
     */
     void download(List<PictureRadarSpectrumDto> all, HttpServletResponse response) throws IOException;
 
-    void uploadSpectrumPicture(PictureRadarSpectrum pictureRadarSpectrum, MultipartFile file);
+    void uploadSpectrumPicture(PictureRadarSpectrum pictureRadarSpectrum, MultipartFile file) throws IOException;
 }

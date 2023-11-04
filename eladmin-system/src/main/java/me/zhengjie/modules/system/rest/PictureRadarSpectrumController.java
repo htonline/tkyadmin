@@ -111,7 +111,11 @@ public class PictureRadarSpectrumController {
         pictureRadarSpectrum.setRemark7(remark7);
         pictureRadarSpectrum.setRemark8(remark8);
 
-        pictureRadarSpectrumService.uploadSpectrumPicture(pictureRadarSpectrum,file);
+        try {
+            pictureRadarSpectrumService.uploadSpectrumPicture(pictureRadarSpectrum,file);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

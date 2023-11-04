@@ -93,7 +93,7 @@ public interface RadarPictureService {
 
     /**
      * 上传图片
-     * @param name 文件名undefined(不重要，仿写)
+     * @param radarDiseasetypePictures 文件名undefined(不重要，仿写)
      * @param file  文件
      * @return 插入的那个文件
      */

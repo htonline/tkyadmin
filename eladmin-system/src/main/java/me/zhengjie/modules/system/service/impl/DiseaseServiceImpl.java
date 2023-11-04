@@ -19,6 +19,8 @@ import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.data.PictureRenderData;
 import com.deepoove.poi.data.Pictures;
 import me.zhengjie.modules.system.domain.Disease;
+import me.zhengjie.modules.system.domain.PictureRadarSpectrum;
+import me.zhengjie.modules.system.repository.PictureRadarSpectrumRepository;
 import me.zhengjie.utils.ValidationUtil;
 import me.zhengjie.utils.FileUtil;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,8 @@ import me.zhengjie.modules.system.service.dto.DiseaseDto;
 import me.zhengjie.modules.system.service.dto.DiseaseQueryCriteria;
 import me.zhengjie.modules.system.service.mapstruct.DiseaseMapper;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import cn.hutool.core.lang.Snowflake;
@@ -39,6 +43,7 @@ import me.zhengjie.utils.QueryHelp;
 
 import java.io.*;
 import java.util.*;
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 
 /**
@@ -53,6 +58,8 @@ public class DiseaseServiceImpl implements DiseaseService {
 
     private final DiseaseRepository diseaseRepository;
     private final DiseaseMapper diseaseMapper;
+    @Resource
+    private PictureRadarSpectrumRepository pictureRadarSpectrumRepository;
 
     @Override
     public Map<String,Object> queryAll(DiseaseQueryCriteria criteria, Pageable pageable){
@@ -134,20 +141,31 @@ public class DiseaseServiceImpl implements DiseaseService {
 
         // 给文档内的变量设值
         Map<String, Object> map = new HashMap<>();
-        map.put("dis_Number", criteria.getDiseaseId());     // 设置编号
-        map.put("dis_RoadName", criteria.getRemark());     // 设置道路名称
-        map.put("dis_Type", criteria.getDiseaseType());     // 设置病害体类型
+        map.put("dis_Number", criteria.getDiseaseId());         // 设置编号
+        map.put("dis_RoadName", criteria.getRemark());          // 设置道路名称
+        map.put("dis_Type", criteria.getDiseaseType());         // 设置病害体类型
         map.put("dis_SizeInfor", criteria.getDiseaseSize());    // 设置尺寸
-        map.put("dis_TopDepth", criteria.getStartDepth());  // 设置顶深
-        map.put("dis_BottomDepth", criteria.getEndDepth());    // 设置底深
+        map.put("dis_TopDepth", criteria.getStartDepth());      // 设置顶深
+        map.put("dis_BottomDepth", criteria.getEndDepth());     // 设置底深
+
+        List<PictureRadarSpectrum> all = pictureRadarSpectrumRepository.findAll();
+        for (PictureRadarSpectrum pictureRadarSpectrum : all) {
+            if (pictureRadarSpectrum.getTunnelId() == Integer.parseInt(criteria.getRemark1())) {
+                String accessibleURL = "http://120.46.140.233:8001/file/pictures/radarSpectrum/" + pictureRadarSpectrum.getFileUrl();
+                PictureRenderData spectrumImg = Pictures.ofUrl(accessibleURL).size(270, 227).create();
+                map.put("spectrumImg", spectrumImg);
+                break;
+            }
+        }
 
 
+//       根据 经纬度 获取对应地区的地图图片
         String longLat = criteria.getLongLat();
         String[] parts = longLat.split(",");
         if (parts.length == 2) {
             String longitude = parts[0].trim(); // 获取经度
             String latitude = parts[1].trim();  // 获取纬度
-//            传给百度地图的经纬度参数，中间不能有空格; 不然无法返回对应的图片
+           // 传给百度地图的经纬度参数，中间不能有空格; 不然无法返回对应的图片
             String longLatResult = longitude + "," + latitude;
             map.put("dis_Lon", longitude);
             map.put("dis_Lat", latitude);
@@ -161,6 +179,7 @@ public class DiseaseServiceImpl implements DiseaseService {
             map.put("dis_Lat", "无法正确获取纬度数据。");
         }
 
+//        获取病害卡片模板; 将值写进模板中; 导出;
         try {
 
             //InputStream inputStream = getClass().getClassLoader().getResourceAsStream("template/doc/templateDoc.docx");

@@ -126,6 +126,7 @@ public class PictureServiceImpl implements PictureService {
 
     @Override
     public void uploadScenePicture(Picture picture, MultipartFile multipartFile) {
+//        上传到这个位置，是因为大屏展示的前端 访问的就是这个位置
         String filePath = "D:\\WorkFile\\FrontCode\\IofTV-Screen-web\\src\\assets\\img\\pictures\\scene"+ File.separator + picture.getUrl() + File.separator;
         File file = FileUtil.upload(multipartFile, filePath);
         //        5.如果上传文件失败（file为空），则抛出一个BadRequestException异常，提示上传失败。
@@ -136,5 +137,13 @@ public class PictureServiceImpl implements PictureService {
         picture.setRemark(multipartFile.getOriginalFilename()); // 设置文件名称
         picture.setUrl(picture.getUrl()+"/"+multipartFile.getOriginalFilename());   // 设置文件存储路径
         pictureRepository.save(picture);
+
+ //        上传到这个位置，是因为卡片导出中的雷达图谱, 需要一个可以访问url地址(但为什么只有file文件里面的才可以访问呢？)
+        String filePath_1 = "D:\\eladmin\\file\\pictures\\scene"+ File.separator + picture.getUrl() + File.separator;
+        File file_1 = FileUtil.upload(multipartFile, filePath_1);
+        //        5.如果上传文件失败（file为空），则抛出一个BadRequestException异常，提示上传失败。
+        if (ObjectUtil.isNull(file_1)) {
+            throw new BadRequestException("上传失败");
+        }
     }
 }
