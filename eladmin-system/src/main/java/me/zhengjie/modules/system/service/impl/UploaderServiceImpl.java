@@ -20,6 +20,7 @@ import java.io.*;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.net.*;
 
 /**
  * @author Zuohaitao
@@ -74,7 +75,7 @@ public class UploaderServiceImpl implements UploaderService {
         //1.2)检查Redis中是否存在,并且所有分片已经上传完成。
 //        将缓存中所有的块取出, 放入集合uploaded中
         Set<Integer> uploaded = (Set<Integer>) redisTemplate.opsForHash().get(chunkDTO.getIdentifier(), "uploaded");
-//        块不等于空:说明之前上传过这个文件（缓存中有它的分块文件） && 缓存中分块的数量等于文件的总块数:说明这个块已经上传完了 && 文件已经存在
+//        块不等于空:说明之前上传过这个文件（缓存中有它的分块文件） && 缓存中分块的数量等于文件的总块数:说明这个块已经上传完了 && 文件已经存在(有可能上传完但没合并)
         if (uploaded != null && uploaded.size() == chunkDTO.getTotalChunks() && exists) {
 //            满足这三个条件: 实现秒传（不用传了）
             String parentPath = file.getParent();
@@ -186,10 +187,10 @@ public class UploaderServiceImpl implements UploaderService {
                     }
                     randomAccessFileReader.close();
 
-                    // 删除已合并的分片文件
-                    if (chunk.exists()) {
-                        chunk.delete();
-                    }
+//                    // 删除已合并的分片文件
+//                    if (chunk.exists()) {
+//                        chunk.delete();
+//                    }
 
                 }
                 randomAccessFileWriter.close();
@@ -198,7 +199,7 @@ public class UploaderServiceImpl implements UploaderService {
             }
 
 
-            // ======如果文件上传完成,就往radar_acquisition_upload数据库里加一条数据
+// ==================================如果文件上传完成,就往radar_acquisition_upload数据库里加一条数据==================================================================================
             RadarAcquisitionUpload one = new RadarAcquisitionUpload();
             one.setFileName(filename);
             one.setFilePath(filePath);
@@ -210,8 +211,22 @@ public class UploaderServiceImpl implements UploaderService {
 
             //unzip_hutool(filePath, fileFolderPath);     // 将上传的压缩包解压到上传目录
 
+//=================================Socket实现往服务器发送数据====================================================================================================
+            final String serverAddress = "192.168.1.112";
+            final int port = 2020; // 服务器端口号
 
+            try (Socket socket = new Socket(serverAddress, port)) {
+                OutputStream output = socket.getOutputStream();
+                PrintWriter writer = new PrintWriter(output, true);
 
+                writer.println(one.toString());
+
+                System.out.println("发送到服务器的消息：" + one);
+            } catch (UnknownHostException e) {
+                System.err.println("无法连接到服务器：" + e.getMessage());
+            } catch (IOException e) {
+                System.err.println("I/O 错误：" + e.getMessage());
+            }
 
             return true;
         }
