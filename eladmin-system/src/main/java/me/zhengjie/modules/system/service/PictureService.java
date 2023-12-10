@@ -84,5 +84,5 @@ public interface PictureService {
     void download(List<PictureDto> all, HttpServletResponse response) throws IOException;
 
 
-    void uploadScenePicture(Picture picture, MultipartFile file);
+    void uploadScenePicture(Picture picture, MultipartFile file) throws IOException;
 }

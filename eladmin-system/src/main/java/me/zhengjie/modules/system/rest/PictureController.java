@@ -37,7 +37,7 @@ import javax.servlet.http.HttpServletResponse;
 /**
 * @website https://el-admin.vip
 * @author Zuohaitao
-* @date 2023-11-01
+* @date 2023-11-01 现场图片上传的Controller
 **/
 @RestController
 @RequiredArgsConstructor
@@ -112,7 +112,11 @@ public class PictureController {
         picture.setRemark7(remark7);
         picture.setRemark8(remark8);
 
-        pictureService.uploadScenePicture(picture, file);
+        try {
+            pictureService.uploadScenePicture(picture, file);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

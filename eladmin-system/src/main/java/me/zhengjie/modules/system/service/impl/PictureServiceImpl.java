@@ -34,10 +34,9 @@ import me.zhengjie.utils.PageUtil;
 import me.zhengjie.utils.QueryHelp;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
+import java.io.*;
 import java.util.List;
 import java.util.Map;
-import java.io.IOException;
 import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -125,7 +124,11 @@ public class PictureServiceImpl implements PictureService {
     }
 
     @Override
-    public void uploadScenePicture(Picture picture, MultipartFile multipartFile) {
+    public void uploadScenePicture(Picture picture, MultipartFile multipartFile) throws IOException {
+
+//        文件上传一份之后会清空，所以在这复制一份，上传两个地方
+        MultipartFile multipartFile_1 = createCopyMultipartFile(multipartFile);
+
 //        上传到这个位置，是因为大屏展示的前端 访问的就是这个位置
         String filePath = "D:\\WorkFile\\FrontCode\\IofTV-Screen-web\\src\\assets\\img\\pictures\\scene"+ File.separator + picture.getUrl() + File.separator;
         File file = FileUtil.upload(multipartFile, filePath);
@@ -134,16 +137,75 @@ public class PictureServiceImpl implements PictureService {
             throw new BadRequestException("上传失败");
         }
 
-        picture.setRemark(multipartFile.getOriginalFilename()); // 设置文件名称
-        picture.setUrl(picture.getUrl()+"/"+multipartFile.getOriginalFilename());   // 设置文件存储路径
-        pictureRepository.save(picture);
-
  //        上传到这个位置，是因为卡片导出中的雷达图谱, 需要一个可以访问url地址(但为什么只有file文件里面的才可以访问呢？)
         String filePath_1 = "D:\\eladmin\\file\\pictures\\scene"+ File.separator + picture.getUrl() + File.separator;
-        File file_1 = FileUtil.upload(multipartFile, filePath_1);
+        File file_1 = FileUtil.upload(multipartFile_1, filePath_1);
         //        5.如果上传文件失败（file为空），则抛出一个BadRequestException异常，提示上传失败。
         if (ObjectUtil.isNull(file_1)) {
             throw new BadRequestException("上传失败");
         }
+
+        //        准备存入数据库
+        picture.setRemark(multipartFile.getOriginalFilename()); // 设置文件名称
+        picture.setUrl(picture.getUrl()+"/"+multipartFile.getOriginalFilename());   // 设置文件存储路径
+        pictureRepository.save(picture);
+    }
+
+    public MultipartFile createCopyMultipartFile(MultipartFile sourceMultipartFile) throws IOException {
+        // 获取原始文件名
+        String originalFilename = sourceMultipartFile.getOriginalFilename();
+
+        // 获取文件内容类型
+        String contentType = sourceMultipartFile.getContentType();
+
+        // 获取文件字节数组
+        byte[] bytes = sourceMultipartFile.getBytes();
+
+        // 创建一个新的MultipartFile对象
+        MultipartFile newMultipartFile = new MultipartFile() {
+            @Override
+            public String getName() {
+                return sourceMultipartFile.getName();
+            }
+
+            @Override
+            public String getOriginalFilename() {
+                return originalFilename;
+            }
+
+            @Override
+            public String getContentType() {
+                return contentType;
+            }
+
+            @Override
+            public boolean isEmpty() {
+                return bytes.length == 0;
+            }
+
+            @Override
+            public long getSize() {
+                return bytes.length;
+            }
+
+            @Override
+            public byte[] getBytes() throws IOException {
+                return bytes;
+            }
+
+            @Override
+            public InputStream getInputStream() throws IOException {
+                return new ByteArrayInputStream(bytes);
+            }
+
+            @Override
+            public void transferTo(File dest) throws IOException, IllegalStateException {
+                try (OutputStream outputStream = new FileOutputStream(dest)) {
+                    outputStream.write(bytes);
+                }
+            }
+        };
+
+        return newMultipartFile;
     }
 }
