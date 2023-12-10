@@ -36,7 +36,7 @@ import javax.servlet.http.HttpServletResponse;
 /**
 * @website https://el-admin.vip
 * @author Zuohaitao
-* @date 2023-11-01
+* @date 2023-11-01 雷达图谱上传的Controller
 **/
 @RestController
 @RequiredArgsConstructor
