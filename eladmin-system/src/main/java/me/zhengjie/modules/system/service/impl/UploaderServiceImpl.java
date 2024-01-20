@@ -1,12 +1,19 @@
 package me.zhengjie.modules.system.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import me.zhengjie.modules.system.domain.PictureRadarSpectrum;
+import me.zhengjie.modules.system.domain.PictureRealtimeRadarSpectrum;
 import me.zhengjie.modules.system.domain.RadarAcquisitionUpload;
+import me.zhengjie.modules.system.domain.Tunnel;
+import me.zhengjie.modules.system.repository.PictureRadarSpectrumRepository;
+import me.zhengjie.modules.system.repository.PictureRealtimeRadarSpectrumRepository;
 import me.zhengjie.modules.system.repository.RadarAcquisitionUploadRepository;
+import me.zhengjie.modules.system.repository.TunnelRepository;
 import me.zhengjie.modules.system.service.UploaderService;
 import me.zhengjie.modules.system.service.dto.FileChunkDTO;
 import me.zhengjie.modules.system.service.dto.FileChunkResultDTO;
 import me.zhengjie.utils.SecurityUtils;
+import org.apache.poi.ss.formula.functions.T;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,11 +23,21 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.*;
+import java.nio.file.*;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.net.*;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Zuohaitao
@@ -45,7 +62,14 @@ public class UploaderServiceImpl implements UploaderService {
 
     @Resource
     private RadarAcquisitionUploadRepository radarAcquisitionUploadRepository;
+    @Resource
+    private PictureRealtimeRadarSpectrumRepository pictureRealtimeRadarSpectrumRepository;
 
+    @Resource
+    private TunnelRepository tunnelRepository;
+
+    @Resource
+    private PictureRadarSpectrumRepository pictureRadarSpectrumRepository;
     /**
      * 检查文件是否存在，如果存在则跳过该文件的上传，如果不存在，返回需要上传的分片集合
      *
@@ -103,6 +127,18 @@ public class UploaderServiceImpl implements UploaderService {
                 UserDetails currentUser = SecurityUtils.getCurrentUser();           // 获取当前用户名
                 newFileRepeat.setByUser(currentUser.getUsername());
                 radarAcquisitionUploadRepository.save(newFileRepeat);
+
+
+                //=================================Socket实现往服务器发送数据====================================================================================================
+
+
+                sendRadarDataToServer(newFileRepeat);
+
+
+                //=================================解压缩文件夹，读取识别后的数据，存入数据库=================================
+                unZipAndExtractAndStoreData(newFile.getAbsolutePath(), newFile.getParent());
+
+
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -209,29 +245,190 @@ public class UploaderServiceImpl implements UploaderService {
             one.setByUser(currentUser.getUsername());
             radarAcquisitionUploadRepository.save(one);
 
-            //unzip_hutool(filePath, fileFolderPath);     // 将上传的压缩包解压到上传目录
-
 //=================================Socket实现往服务器发送数据====================================================================================================
-            final String serverAddress = "192.168.1.112";
-            final int port = 2020; // 服务器端口号
 
-            try (Socket socket = new Socket(serverAddress, port)) {
-                OutputStream output = socket.getOutputStream();
-                PrintWriter writer = new PrintWriter(output, true);
+            sendRadarDataToServer(one);
 
-                writer.println(one.toString());
 
-                System.out.println("发送到服务器的消息：" + one);
-            } catch (UnknownHostException e) {
-                System.err.println("无法连接到服务器：" + e.getMessage());
-            } catch (IOException e) {
-                System.err.println("I/O 错误：" + e.getMessage());
-            }
+//=================================解压缩文件夹，读取识别后的数据，存入数据库=================================
+            unZipAndExtractAndStoreData(filePath, fileFolderPath);
+
 
             return true;
         }
 
         return false;
+    }
+
+    //            解压缩文件夹，读取识别后的数据，存入数据库
+    private void unZipAndExtractAndStoreData(String filePath, String fileFolderPath) {
+        String outDir = unzip_hutool(filePath, fileFolderPath);// 将上传的压缩包解压到上传目录
+        // 创建File对象表示文件夹
+        File folder = new File(outDir);
+
+        // 检查文件夹是否存在
+        if (folder.exists() && folder.isDirectory()) {
+            String lastFolderName = folder.getName();        // 获取最后一个文件夹的名字(即解压缩后的文件夹名)
+
+            if (lastFolderName.contains("result")) {        // 判断文件夹名中是否包含"result"这四个字
+
+                // 获取该文件夹下的所有图片文件和txt文件
+                List<String> imgFolders = new ArrayList<>();
+                AtomicReference<String> txtFilePath = new AtomicReference<>(null);  // AtomicReference :在方法结束后继续使用 txtFilePath 的值
+                scanFolder(folder, imgFolders, txtFilePath);
+
+                File txtFile = new File(txtFilePath.get()); // 将路径变成要一个File对象
+
+
+//                读取txt中的内容，将每行的数据都插入到数据库中
+                if (txtFile != null) {
+                    // 读取txt文件内容
+                    try {
+                        BufferedReader reader = new BufferedReader(new FileReader(txtFile));
+                        String line;
+                        // 循环读取每一行的内容
+                        while ((line = reader.readLine()) != null) {
+                            // 处理每一行的内容，可以在这里进行需要的操作
+                            // TODO:存到数据里的url地址，就是: XXX识别结果/图片名字.jpg. 前端图片显示访问的地址，就是realtimeRadarSpectrum/XXX识别结果/图片名字.jpg
+                            System.out.println("Read line from the txt file: " + line);
+                            // 使用 split 方法进行分割
+                            String[] tokens = line.split(";");
+
+                            // 首先的将经纬度存到tunnel中，然后获得他的id，然后才能把图片放到数据库里去以及将图片复制到对应的地方上去；
+                            String lnglat = tokens[tokens.length - 1];  // 经纬度在最后（图片名字在第一个）
+                            String[] split = lnglat.split(",");
+                            if (split.length >= 2) {
+                                String latitudeString = split[0];
+                                String longitudeString = split[1];
+                                double latitude = convertGPGGAtoGPS(latitudeString);
+                                double longitude = convertGPGGAtoGPS(longitudeString);
+                                Tunnel tunnel = new Tunnel();
+                                tunnel.setDetectLocationLat(Double.toString(latitude));
+                                tunnel.setDetectLocationLng(Double.toString(longitude));
+                                Tunnel save = tunnelRepository.save(tunnel);
+                                Integer tunnelId = save.getTunnelId();
+
+                                PictureRadarSpectrum pictureRadarSpectrum = new PictureRadarSpectrum();
+                                pictureRadarSpectrum.setFileUrl(lastFolderName+"/"+tokens[0]);
+                                pictureRadarSpectrum.setTunnelId(tunnelId);
+                                pictureRadarSpectrumRepository.save(pictureRadarSpectrum);
+
+
+                                // 最后将图片文件复制到特定文件夹下（一个IP地址，就对应一张图片）
+                                for (String imgFolder : imgFolders) {
+                                    File imgFile = new File(imgFolder);
+                                    if (imgFile.getName().equals(tokens[0])) {
+                                        if (imgFile.isFile() && isImageFile(imgFile)) {
+                                            // 复制图片到目标路径
+                                            copyImage(imgFile, "D:\\WorkFile\\FrontCode\\IofTV-Screen-web\\src\\assets\\img\\pictures\\radarSpectrum" + File.separator + lastFolderName + File.separator);
+                                            break;
+                                        }
+                                    }
+                                }
+
+
+                            }
+                        }
+                        reader.close();
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+        }
+
+    }
+
+    private static void scanFolder(File folder, List<String> imgFolders, AtomicReference<String> txtFilePath) {
+        File[] files = folder.listFiles();
+
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    scanFolder(file, imgFolders, txtFilePath);
+                } else {
+                    String fileName = file.getName().toLowerCase();
+                    if (fileName.endsWith(".txt")) {
+                        txtFilePath.set(file.getAbsolutePath());
+                    } else if (isImageFile(fileName)) {
+                        imgFolders.add(file.getAbsolutePath());
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean isImageFile(String fileName) {
+        String[] imageExtensions = {".jpg", ".jpeg", ".png", ".gif", ".bmp"};
+
+        for (String extension : imageExtensions) {
+            if (fileName.endsWith(extension)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // 将传过来的经纬度转成高德地图所使用的经纬度
+    private static double convertGPGGAtoGPS(String gpggaValue) {
+        // Assuming format is DDMM.MMMMMM
+        double value = Double.parseDouble(gpggaValue);
+
+        // Extract degrees
+        int degrees = (int) value / 100;
+
+        // Extract minutes
+        double minutes = value % 100;
+
+        // Convert to GPS format (degrees + minutes/60)
+        return degrees + minutes / 60;
+    }
+
+    // 判断文件是否为图片
+    private boolean isImageFile(File file) {
+        try {
+            BufferedImage img = ImageIO.read(file);
+            return img != null;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private void sendRadarDataToServer(RadarAcquisitionUpload data) {
+        if (!data.getFileName().contains("result")) {
+            final String serverAddress = "124.204.60.82";
+            final int port = 2021; // 服务器端口
+
+            try (Socket socket = new Socket(serverAddress, port)) {
+                OutputStream output = socket.getOutputStream();
+                PrintWriter writer = new PrintWriter(output, true);
+
+                writer.println(data.toString());
+
+                System.out.println("发送到服务器的消息：" + data);
+            } catch (UnknownHostException e) {
+                System.err.println("无法连接到服务器：" + e.getMessage());
+            } catch (IOException e) {
+                System.err.println("I/O 错误：" + e.getMessage());
+            }
+        }
+    }
+
+    // 复制图片到目标路径
+    private void copyImage(File sourceImage, String targetFolderPath) {
+        try {
+            // 创建目标文件夹
+            Files.createDirectories(Paths.get(targetFolderPath));
+
+            Path sourcePath = sourceImage.toPath();
+            Path targetPath = Paths.get(targetFolderPath, sourceImage.getName());
+            Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private static String getNewFileName(String originalFileName) {
@@ -244,7 +441,7 @@ public class UploaderServiceImpl implements UploaderService {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
         String formattedTime = dateFormat.format(currentTime);
 
-        return name + "("+formattedTime+")" + extension;
+        return name + "_"+formattedTime + extension;
     }
 
     /**
@@ -336,11 +533,11 @@ public class UploaderServiceImpl implements UploaderService {
      *
      * @param zipFile 压缩包路径               例如："D:\eladmin\file\radarAcquisitionUpload\UserName\test.zip";
      * @param outDir  解压到的目录(支持创建)     例如："D:\eladmin\file\radarAcquisitionUpload\UserName"
-     * @return void
+     * @return String 返回解压后的文件夹路径
      * @author
      * @date 2022/8/3 17:28
      */
-    public static void unzip_hutool(String zipFile, String outDir) {
+    public static String unzip_hutool(String zipFile, String outDir) {
         // 使用反斜杠 "\" 进行分割
         String[] pathParts = zipFile.split("\\\\");
         // 获取倒数第一个元素，即 "test.zip"
@@ -351,5 +548,6 @@ public class UploaderServiceImpl implements UploaderService {
         String targetName = fileNameParts[0];
         outDir += File.separator + targetName;
         cn.hutool.core.util.ZipUtil.unzip(zipFile, outDir);
+        return outDir;
     }
 }
