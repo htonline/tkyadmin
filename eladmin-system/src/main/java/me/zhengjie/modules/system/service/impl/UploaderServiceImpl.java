@@ -1,6 +1,7 @@
 package me.zhengjie.modules.system.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import me.zhengjie.modules.quartz.utils.GPSTransToAMapUtil;
 import me.zhengjie.modules.system.domain.PictureRadarSpectrum;
 import me.zhengjie.modules.system.domain.PictureRealtimeRadarSpectrum;
 import me.zhengjie.modules.system.domain.RadarAcquisitionUpload;
@@ -269,89 +270,124 @@ public class UploaderServiceImpl implements UploaderService {
         // 检查文件夹是否存在
         if (folder.exists() && folder.isDirectory()) {
             String lastFolderName = folder.getName();        // 获取最后一个文件夹的名字(即解压缩后的文件夹名)
+            String result = "result";
 
-            if (lastFolderName.contains("result")) {        // 判断文件夹名中是否包含"result"这四个字
+            if (lastFolderName.toLowerCase().contains(result.toLowerCase())) {        // 判断文件夹名中是否包含"result"这个单词
 
                 // 获取该文件夹下的所有图片文件和txt文件
                 List<String> imgFolders = new ArrayList<>();
-                AtomicReference<String> txtFilePath = new AtomicReference<>(null);  // AtomicReference :在方法结束后继续使用 txtFilePath 的值
-                scanFolder(folder, imgFolders, txtFilePath);
+                List<String> txtFilePaths = new ArrayList<>();
+                scanFolder(folder, imgFolders, txtFilePaths);
 
-                File txtFile = new File(txtFilePath.get()); // 将路径变成要一个File对象
+                for (String txtFilePath : txtFilePaths) {
+                    File txtFile = new File(txtFilePath); // 将路径变成要一个File对象
+
+                    //                读取txt中的内容，将每行的数据都插入到数据库中
+                    if (txtFile != null) {
+                        // 读取txt文件内容
+                        try {
+                            BufferedReader reader = new BufferedReader(new FileReader(txtFile));
+                            String line;
+                            // 循环读取每一行的内容
+                            while ((line = reader.readLine()) != null) {
+                                // 处理每一行的内容，可以在这里进行需要的操作
+
+                                System.out.println("Read line from the txt file: " + line);
+                                // 使用 split 方法进行分割
+                                String[] tokens = line.split(";");
+
+                                // 首先的将经纬度存到tunnel中，然后获得他的id，然后才能把图片放到数据库里去以及将图片复制到对应的地方上去；
+                                String lnglat = tokens[tokens.length - 1];  // 经纬度在最后（图片名字在第一个）
+                                String[] split = lnglat.split(",");
+                                if (split.length == 2) {
+                                    String latitudeString = split[0];
+                                    String longitudeString = split[1];
+                                    double latitude = convertGPGGAtoGPS(latitudeString);    // Double GPS
+                                    double longitude = convertGPGGAtoGPS(longitudeString);  // Double GPS
+//                                    Double GPS ->
+                                    GPSTransToAMapUtil.AMap aMap = GPSTransToAMapUtil.transform(longitude,latitude);
+                                    Tunnel tunnel = new Tunnel();
+                                    tunnel.setDetectLocationLat(Double.toString(aMap.getLatitude()));
+                                    tunnel.setDetectLocationLng(Double.toString(aMap.getLongitude()));
+                                    Tunnel save = tunnelRepository.save(tunnel);
+                                    Integer tunnelId = save.getTunnelId();
+
+                                    PictureRadarSpectrum pictureRadarSpectrum = new PictureRadarSpectrum();
+                                    // 如果文件名是以.bmp作为后缀，就将bmp替换成png，存入数据库
+                                    if (tokens[0].toLowerCase().endsWith(".bmp")) {
+                                        String pngName = tokens[0].replace(".bmp", ".png");
+                                        pictureRadarSpectrum.setFileUrl(lastFolderName+"/"+pngName);
+                                    } else {
+                                        pictureRadarSpectrum.setFileUrl(lastFolderName+"/"+tokens[0]);
+                                    }
+                                    pictureRadarSpectrum.setTunnelId(tunnelId);
+                                    pictureRadarSpectrumRepository.save(pictureRadarSpectrum);
 
 
-//                读取txt中的内容，将每行的数据都插入到数据库中
-                if (txtFile != null) {
-                    // 读取txt文件内容
-                    try {
-                        BufferedReader reader = new BufferedReader(new FileReader(txtFile));
-                        String line;
-                        // 循环读取每一行的内容
-                        while ((line = reader.readLine()) != null) {
-                            // 处理每一行的内容，可以在这里进行需要的操作
-                            // TODO:存到数据里的url地址，就是: XXX识别结果/图片名字.jpg. 前端图片显示访问的地址，就是realtimeRadarSpectrum/XXX识别结果/图片名字.jpg
-                            System.out.println("Read line from the txt file: " + line);
-                            // 使用 split 方法进行分割
-                            String[] tokens = line.split(";");
+                                    // 最后将图片文件复制到特定文件夹下（一个IP地址，就对应一张图片）
+                                    for (String imgFolder : imgFolders) {
+                                        File imgFile = new File(imgFolder);
+                                        if (imgFile.getName().equals(tokens[0])) {
+                                            if (imgFile.isFile() && isImageFile(imgFile)) {
+                                                String targetFolderPath = "D:\\WorkFile\\FrontCode\\IofTV-Screen-web\\src\\assets\\img\\pictures\\radarSpectrum";
 
-                            // 首先的将经纬度存到tunnel中，然后获得他的id，然后才能把图片放到数据库里去以及将图片复制到对应的地方上去；
-                            String lnglat = tokens[tokens.length - 1];  // 经纬度在最后（图片名字在第一个）
-                            String[] split = lnglat.split(",");
-                            if (split.length >= 2) {
-                                String latitudeString = split[0];
-                                String longitudeString = split[1];
-                                double latitude = convertGPGGAtoGPS(latitudeString);
-                                double longitude = convertGPGGAtoGPS(longitudeString);
-                                Tunnel tunnel = new Tunnel();
-                                tunnel.setDetectLocationLat(Double.toString(latitude));
-                                tunnel.setDetectLocationLng(Double.toString(longitude));
-                                Tunnel save = tunnelRepository.save(tunnel);
-                                Integer tunnelId = save.getTunnelId();
+//                                                如果是bmp格式的文件，将bmp格式的图片文件转储PNG格式
+                                                if (imgFile.getAbsolutePath().endsWith(".bmp")) {
+                                                    try {
+                                                        String pngImgFilePath = imgFile.getAbsolutePath().replace(".bmp", ".png");
+                                                        // 读取BMP文件
+                                                        BufferedImage image = ImageIO.read(new File(imgFile.getAbsolutePath()));
 
-                                PictureRadarSpectrum pictureRadarSpectrum = new PictureRadarSpectrum();
-                                pictureRadarSpectrum.setFileUrl(lastFolderName+"/"+tokens[0]);
-                                pictureRadarSpectrum.setTunnelId(tunnelId);
-                                pictureRadarSpectrumRepository.save(pictureRadarSpectrum);
+                                                        // 将图像写入PNG文件
+                                                        File pngImg = new File(pngImgFilePath);
+                                                        ImageIO.write(image, "png", pngImg);
 
+                                                        copyImage(pngImg,  targetFolderPath + File.separator + lastFolderName + File.separator);
 
-                                // 最后将图片文件复制到特定文件夹下（一个IP地址，就对应一张图片）
-                                for (String imgFolder : imgFolders) {
-                                    File imgFile = new File(imgFolder);
-                                    if (imgFile.getName().equals(tokens[0])) {
-                                        if (imgFile.isFile() && isImageFile(imgFile)) {
-                                            // 复制图片到目标路径
-                                            copyImage(imgFile, "D:\\WorkFile\\FrontCode\\IofTV-Screen-web\\src\\assets\\img\\pictures\\radarSpectrum" + File.separator + lastFolderName + File.separator);
-                                            break;
+                                                        System.out.println("转换完成！");
+                                                    } catch (IOException e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                } else {
+                                                    // 复制图片到目标路径
+                                                    copyImage(imgFile,  targetFolderPath + File.separator + lastFolderName + File.separator);
+                                                }
+                                                break;
+                                            }
                                         }
                                     }
+
+
                                 }
-
-
                             }
-                        }
-                        reader.close();
+                            reader.close();
 
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
+
+
+
+
             }
 
         }
 
     }
 
-    private static void scanFolder(File folder, List<String> imgFolders, AtomicReference<String> txtFilePath) {
+    private static void scanFolder(File folder, List<String> imgFolders, List<String> txtFilePaths) {
         File[] files = folder.listFiles();
 
         if (files != null) {
             for (File file : files) {
                 if (file.isDirectory()) {
-                    scanFolder(file, imgFolders, txtFilePath);
+                    scanFolder(file, imgFolders, txtFilePaths);
                 } else {
                     String fileName = file.getName().toLowerCase();
                     if (fileName.endsWith(".txt")) {
-                        txtFilePath.set(file.getAbsolutePath());
+                        txtFilePaths.add(file.getAbsolutePath());
                     } else if (isImageFile(fileName)) {
                         imgFolders.add(file.getAbsolutePath());
                     }
@@ -372,7 +408,7 @@ public class UploaderServiceImpl implements UploaderService {
         return false;
     }
 
-    // 将传过来的经纬度转成高德地图所使用的经纬度
+    // 将传过来的经纬度转成GPS
     private static double convertGPGGAtoGPS(String gpggaValue) {
         // Assuming format is DDMM.MMMMMM
         double value = Double.parseDouble(gpggaValue);
