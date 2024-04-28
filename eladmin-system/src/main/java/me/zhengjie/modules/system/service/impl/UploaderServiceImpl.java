@@ -2,14 +2,8 @@ package me.zhengjie.modules.system.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import me.zhengjie.modules.quartz.utils.GPSTransToAMapUtil;
-import me.zhengjie.modules.system.domain.PictureRadarSpectrum;
-import me.zhengjie.modules.system.domain.PictureRealtimeRadarSpectrum;
-import me.zhengjie.modules.system.domain.RadarAcquisitionUpload;
-import me.zhengjie.modules.system.domain.Tunnel;
-import me.zhengjie.modules.system.repository.PictureRadarSpectrumRepository;
-import me.zhengjie.modules.system.repository.PictureRealtimeRadarSpectrumRepository;
-import me.zhengjie.modules.system.repository.RadarAcquisitionUploadRepository;
-import me.zhengjie.modules.system.repository.TunnelRepository;
+import me.zhengjie.modules.system.domain.*;
+import me.zhengjie.modules.system.repository.*;
 import me.zhengjie.modules.system.service.UploaderService;
 import me.zhengjie.modules.system.service.dto.FileChunkDTO;
 import me.zhengjie.modules.system.service.dto.FileChunkResultDTO;
@@ -44,10 +38,6 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Zuohaitao
  * @date 2023-11-03 09:58
  * @describe 实现大文件的分片上传;
- * 🚀 特别鸣谢：Powered by the incredible genius, the one and only, the coding wizard - 史文幸学姐! 🌟
- *  1. 请注意，这段代码中蕴含了史文幸学姐的智慧和魔法，对它保持敬畏之心！💥
- *  2. 只有史文幸学姐有权解释这段神秘代码，普通人请勿尝试！🧙‍♀️
- *  3. 本代码不是一个普通代码，而是史文幸学姐的传奇之作，它会随着时间推移而变得越来越强大！🔮
  */
 @Service
 @SuppressWarnings("all")
@@ -67,10 +57,14 @@ public class UploaderServiceImpl implements UploaderService {
     private PictureRealtimeRadarSpectrumRepository pictureRealtimeRadarSpectrumRepository;
 
     @Resource
-    private TunnelRepository tunnelRepository;
+    private TunnelRepository tunnelRepository;      // 将压缩包数据传入tunnel表
+
+    @Resource
+    private DiseaseInformationRepository diseaseInformationRepository;      // 将压缩包数据传入diseaseInformation表
 
     @Resource
     private PictureRadarSpectrumRepository pictureRadarSpectrumRepository;
+
     /**
      * 检查文件是否存在，如果存在则跳过该文件的上传，如果不存在，返回需要上传的分片集合
      *
@@ -279,60 +273,104 @@ public class UploaderServiceImpl implements UploaderService {
                 List<String> txtFilePaths = new ArrayList<>();
                 scanFolder(folder, imgFolders, txtFilePaths);
 
-                for (String txtFilePath : txtFilePaths) {
-                    File txtFile = new File(txtFilePath); // 将路径变成要一个File对象
+                for (String txtFilePath : txtFilePaths) {           // 遍历txt文件
 
-                    //                读取txt中的内容，将每行的数据都插入到数据库中
-                    if (txtFile != null) {
-                        // 读取txt文件内容
+                    File txtFile = new File(txtFilePath);           // 将txt文件路径变成一个File对象
+
+                    if (txtFile != null) {                          // 读取txt中的内容，将每行的数据都插入到数据库中
+
                         try {
-                            BufferedReader reader = new BufferedReader(new FileReader(txtFile));
+                            BufferedReader reader = new BufferedReader(new FileReader(txtFile));    // 读取txt文件内容
                             String line;
-                            // 循环读取每一行的内容
-                            while ((line = reader.readLine()) != null) {
-                                // 处理每一行的内容，可以在这里进行需要的操作
 
-                                System.out.println("Read line from the txt file: " + line);
-                                // 使用 split 方法进行分割
-                                String[] tokens = line.split(";");
+                            while ((line = reader.readLine()) != null) {                            // 循环读取每一行的内容
 
-                                // 首先的将经纬度存到tunnel中，然后获得他的id，然后才能把图片放到数据库里去以及将图片复制到对应的地方上去；
-                                String lnglat = tokens[tokens.length - 1];  // 经纬度在最后（图片名字在第一个）
-                                String[] split = lnglat.split(",");
-                                if (split.length == 2) {
-                                    String latitudeString = split[0];
-                                    String longitudeString = split[1];
-                                    double latitude = convertGPGGAtoGPS(latitudeString);    // Double GPS
-                                    double longitude = convertGPGGAtoGPS(longitudeString);  // Double GPS
-//                                    Double GPS ->
-                                    GPSTransToAMapUtil.AMap aMap = GPSTransToAMapUtil.transform(longitude,latitude);
-                                    Tunnel tunnel = new Tunnel();
-                                    tunnel.setDetectLocationLat(Double.toString(aMap.getLatitude()));
-                                    tunnel.setDetectLocationLng(Double.toString(aMap.getLongitude()));
-                                    Tunnel save = tunnelRepository.save(tunnel);
-                                    Integer tunnelId = save.getTunnelId();
+                                System.out.println("Read line from the txt file: " + line);         // 输出每一行的内容
 
-                                    PictureRadarSpectrum pictureRadarSpectrum = new PictureRadarSpectrum();
-                                    // 如果文件名是以.bmp作为后缀，就将bmp替换成png，存入数据库
-                                    if (tokens[0].toLowerCase().endsWith(".bmp")) {
-                                        String pngName = tokens[0].replace(".bmp", ".png");
-                                        pictureRadarSpectrum.setFileUrl(lastFolderName+"/"+pngName);
+                                String[] eachRowValueArray = line.split(";");
+
+                                if (eachRowValueArray.length == 17) {
+                                    DiseaseInformation data = new DiseaseInformation();
+
+                                    String imgName = eachRowValueArray[0];
+                                    data.setImgName(imgName);
+                                    String disNo = eachRowValueArray[1];
+                                    data.setDisNumber(disNo);
+                                    String disRoadName = eachRowValueArray[2];
+                                    data.setDisRoadName(disRoadName);
+                                    String disType = eachRowValueArray[3];
+                                    data.setDisType(disType);
+                                    String disFile = eachRowValueArray[4];
+                                    data.setDisFile(disFile);
+
+                                    Double disLat = convertGPGGAtoGPS(eachRowValueArray[5]);
+                                    Double disLon = convertGPGGAtoGPS(eachRowValueArray[6]);
+                                    GPSTransToAMapUtil.AMap aMap = GPSTransToAMapUtil.transform(disLon, disLat);
+                                    data.setDisLat(Double.toString(aMap.getLatitude()));
+                                    data.setDisLon(Double.toString(aMap.getLongitude()));
+
+                                    String disStartMileage = eachRowValueArray[7];
+                                    data.setDisStartMileage(disStartMileage);
+                                    String disEndMileage = eachRowValueArray[8];
+                                    data.setDisEndMileage(disEndMileage);
+                                    String disTopDepth = eachRowValueArray[9];
+                                    data.setDisTopDepth(disTopDepth);
+                                    String disBottomDepth = eachRowValueArray[10];
+                                    data.setDisBottomDepth(disBottomDepth);
+                                    String disStartWidth = eachRowValueArray[11];
+                                    data.setDisStartWidth(disStartWidth);
+                                    String disEndWidth = eachRowValueArray[12];
+                                    data.setDisEndWidth(disEndWidth);
+                                    String disSizeInfo = eachRowValueArray[13].replace(",", "*"); // 将','替换成'*'号
+                                    data.setDisSizeInfor(disSizeInfo);
+                                    String disOpSuggestion = eachRowValueArray[14];
+                                    data.setDisOpSuggestion(disOpSuggestion);
+
+                                    String roadStartLatLon = eachRowValueArray[15];
+                                    String[] roadStartLatLonSplits = roadStartLatLon.split(",");
+                                    GPSTransToAMapUtil.AMap roadStartMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(roadStartLatLonSplits[1]), convertGPGGAtoGPS(roadStartLatLonSplits[0]));
+                                    data.setRoadStartLat(Double.toString(roadStartMap.getLatitude()));
+                                    data.setRoadStartLon(Double.toString(roadStartMap.getLongitude()));
+                                    String roadEndLatLon = eachRowValueArray[16];
+                                    String[] roadEndLatLonSplits = roadEndLatLon.split(",");
+                                    GPSTransToAMapUtil.AMap roadEndMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(roadEndLatLonSplits[1]), convertGPGGAtoGPS(roadEndLatLonSplits[0]));
+                                    data.setRoadEndLat(Double.toString(roadEndMap.getLatitude()));
+                                    data.setRoadEndLon(Double.toString(roadEndMap.getLongitude()));
+
+//                                    设置用户
+                                    UserDetails currentUser = SecurityUtils.getCurrentUser();
+                                    data.setUserName(currentUser.getUsername());
+
+
+
+                                    DiseaseInformation saved = diseaseInformationRepository.save(data);
+
+                                    // 存入之后,获取它的ID
+                                    Integer diseaseInfoID = saved.getId();
+
+                                    /**
+                                     * 将图片路径放到数据库中, 外键为diseaseInfoID
+                                     */
+                                    PictureRadarSpectrum save = new PictureRadarSpectrum();
+                                    if (imgName.toLowerCase().endsWith(".bmp")) {
+                                        String pngName = imgName.replace(".bmp", ".png");
+                                        save.setFileUrl(lastFolderName + "/" + pngName);
                                     } else {
-                                        pictureRadarSpectrum.setFileUrl(lastFolderName+"/"+tokens[0]);
+                                        save.setFileUrl(lastFolderName + "/" + imgName);
                                     }
-                                    pictureRadarSpectrum.setTunnelId(tunnelId);
-                                    pictureRadarSpectrumRepository.save(pictureRadarSpectrum);
+                                    save.setTunnelId(diseaseInfoID);
+                                    pictureRadarSpectrumRepository.save(save);
 
-
-                                    // 最后将图片文件复制到特定文件夹下（一个IP地址，就对应一张图片）
+                                    /**
+                                     * 将图片复制到对应的地方
+                                     */
                                     for (String imgFolder : imgFolders) {
                                         File imgFile = new File(imgFolder);
-                                        if (imgFile.getName().equals(tokens[0])) {
+                                        if (imgFile.getName().equals(imgName)) {
                                             if (imgFile.isFile() && isImageFile(imgFile)) {
                                                 String targetFolderPath = "D:\\WorkFile\\FrontCode\\IofTV-Screen-web\\src\\assets\\img\\pictures\\radarSpectrum";
 
-//                                                如果是bmp格式的文件，将bmp格式的图片文件转储PNG格式
-                                                if (imgFile.getAbsolutePath().endsWith(".bmp")) {
+                                                if (imgFile.getAbsolutePath().endsWith(".bmp")) {       // 如果是bmp格式的文件，将bmp格式的图片文件转储PNG格式
                                                     try {
                                                         String pngImgFilePath = imgFile.getAbsolutePath().replace(".bmp", ".png");
                                                         // 读取BMP文件
@@ -356,8 +394,6 @@ public class UploaderServiceImpl implements UploaderService {
                                             }
                                         }
                                     }
-
-
                                 }
                             }
                             reader.close();
