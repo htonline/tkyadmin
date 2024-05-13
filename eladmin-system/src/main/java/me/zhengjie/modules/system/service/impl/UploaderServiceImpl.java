@@ -127,7 +127,7 @@ public class UploaderServiceImpl implements UploaderService {
                 //=================================Socket实现往服务器发送数据====================================================================================================
 
 
-                sendRadarDataToServer(newFileRepeat);
+                sendRadarDataToServer(newFileRepeat, chunkDTO.getSelectedThresholdValue());
 
 
                 //=================================解压缩文件夹，读取识别后的数据，存入数据库=================================
@@ -183,8 +183,8 @@ public class UploaderServiceImpl implements UploaderService {
 
 
     @Override
-    public boolean mergeChunk(String identifier, String fileName, Integer totalChunks) throws IOException {
-        return mergeChunks(identifier, fileName, totalChunks);
+    public boolean mergeChunk(String identifier, String fileName, Integer totalChunks, String selectedThresholdValue) throws IOException {
+        return mergeChunks(identifier, fileName, totalChunks, selectedThresholdValue);
     }
 
     /**
@@ -193,7 +193,7 @@ public class UploaderServiceImpl implements UploaderService {
      * @param identifier
      * @param filename
      */
-    private boolean mergeChunks(String identifier, String filename, Integer totalChunks) {
+    private boolean mergeChunks(String identifier, String filename, Integer totalChunks, String selectedThresholdValue) {
         String fileFolderPath = getFileFolderPath(identifier);
         String chunkFileFolderPath = getChunkFileFolderPath(identifier, filename);
         String filePath = getFilePath(identifier, filename);
@@ -242,7 +242,7 @@ public class UploaderServiceImpl implements UploaderService {
 
 //=================================Socket实现往服务器发送数据====================================================================================================
 
-            sendRadarDataToServer(one);
+            sendRadarDataToServer(one, selectedThresholdValue);
 
 
 //=================================解压缩文件夹，读取识别后的数据，存入数据库=================================
@@ -368,7 +368,7 @@ public class UploaderServiceImpl implements UploaderService {
                                         File imgFile = new File(imgFolder);
                                         if (imgFile.getName().equals(imgName)) {
                                             if (imgFile.isFile() && isImageFile(imgFile)) {
-                                                String targetFolderPath = "D:\\WorkFile\\FrontCode\\IofTV-Screen-web\\src\\assets\\img\\pictures\\radarSpectrum";
+                                                String targetFolderPath = "D:\\WorkSpace\\JavaProject\\tky\\IofTV-Screen-web\\src\\assets\\img\\pictures\\radarSpectrum";
 
                                                 if (imgFile.getAbsolutePath().endsWith(".bmp")) {       // 如果是bmp格式的文件，将bmp格式的图片文件转储PNG格式
                                                     try {
@@ -469,7 +469,7 @@ public class UploaderServiceImpl implements UploaderService {
         }
     }
 
-    private void sendRadarDataToServer(RadarAcquisitionUpload data) {
+    private void sendRadarDataToServer(RadarAcquisitionUpload data, String selectedThresholdValue) {
         if (!data.getFileName().contains("result")) {
             final String serverAddress = "124.204.60.82";
             final int port = 2021; // 服务器端口
@@ -480,7 +480,7 @@ public class UploaderServiceImpl implements UploaderService {
 
                 writer.println(data.toString());
 
-                System.out.println("发送到服务器的消息：" + data);
+                System.out.println("发送到服务器的消息：" + data + selectedThresholdValue);
             } catch (UnknownHostException e) {
                 System.err.println("无法连接到服务器：" + e.getMessage());
             } catch (IOException e) {

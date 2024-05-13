@@ -128,7 +128,7 @@ public class PictureRadarSpectrumServiceImpl implements PictureRadarSpectrumServ
 
 
         // 上传到这个位置，是因为大屏展示的前端只能访问这个
-        String filePath = "D:\\WorkFile\\FrontCode\\IofTV-Screen-web\\src\\assets\\img\\pictures\\radarSpectrum" + File.separator + pictureRadarSpectrum.getFileUrl() + File.separator;
+        String filePath = "D:\\WorkSpace\\JavaProject\\tky\\IofTV-Screen-web\\src\\assets\\img\\pictures\\radarSpectrum" + File.separator + pictureRadarSpectrum.getFileUrl() + File.separator;
         File file = uploadFile(multipartFile, filePath);
 
         // 上传到这个位置，是因为卡片导出中的雷达图谱, 需要一个可以访问url地址(但为什么只有file文件里面的才可以访问呢？)

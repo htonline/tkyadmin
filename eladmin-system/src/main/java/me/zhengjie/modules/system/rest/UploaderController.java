@@ -64,7 +64,7 @@ public class UploaderController {
     @PostMapping("/merge")
     public RestApiResponse<Object> mergeChunks(@RequestBody FileChunkDTO chunkDTO) {
         try {
-            boolean success = uploaderService.mergeChunk(chunkDTO.getIdentifier(), chunkDTO.getFilename(), chunkDTO.getTotalChunks());
+            boolean success = uploaderService.mergeChunk(chunkDTO.getIdentifier(), chunkDTO.getFilename(), chunkDTO.getTotalChunks(), chunkDTO.getSelectedThresholdValue());
             return RestApiResponse.flag(success);
         } catch (Exception e) {
             return RestApiResponse.error(e.getMessage());

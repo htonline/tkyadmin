@@ -78,6 +78,7 @@ public class RadarAcquisitionUpload implements Serializable {
     @ApiModelProperty(value = "备注3")
     private String beizhu3;
 
+
     public void copy(RadarAcquisitionUpload source){
         BeanUtil.copyProperties(source,this, CopyOptions.create().setIgnoreNullValue(true));
     }

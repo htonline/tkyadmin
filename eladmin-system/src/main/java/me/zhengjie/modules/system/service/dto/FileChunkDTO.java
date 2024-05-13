@@ -42,6 +42,16 @@ public class FileChunkDTO {
      */
     private String filename;
 
+    private String selectedThresholdValue;
+
+    public String getSelectedThresholdValue() {
+        return selectedThresholdValue;
+    }
+
+    public void setSelectedThresholdValue(String selectedThresholdValue) {
+        this.selectedThresholdValue = selectedThresholdValue;
+    }
+
     public String getIdentifier() {
         return identifier;
     }

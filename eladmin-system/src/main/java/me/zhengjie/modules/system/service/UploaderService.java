@@ -34,6 +34,6 @@ public interface UploaderService {
      * @return
      * @throws IOException
      */
-    boolean mergeChunk(String identifier,String fileName,Integer totalChunks)throws IOException;
+    boolean mergeChunk(String identifier,String fileName,Integer totalChunks, String selectedThresholdValue)throws IOException;
 
 }

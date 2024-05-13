@@ -22,15 +22,13 @@ import lombok.RequiredArgsConstructor;
 import me.zhengjie.annotation.Log;
 import me.zhengjie.config.RsaProperties;
 import me.zhengjie.modules.system.domain.Dept;
+import me.zhengjie.modules.system.domain.LargeUser;
 import me.zhengjie.modules.system.domain.UserInfo;
 import me.zhengjie.modules.system.service.*;
 import me.zhengjie.modules.system.domain.User;
 import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.modules.system.domain.vo.UserPassVo;
-import me.zhengjie.modules.system.service.dto.RoleSmallDto;
-import me.zhengjie.modules.system.service.dto.UserDto;
-import me.zhengjie.modules.system.service.dto.UserInfoQueryCriteria;
-import me.zhengjie.modules.system.service.dto.UserQueryCriteria;
+import me.zhengjie.modules.system.service.dto.*;
 import me.zhengjie.utils.*;
 import me.zhengjie.utils.enums.CodeEnum;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,6 +63,8 @@ public class UserController {
     private final DeptService deptService;
     private final RoleService roleService;
     private final VerifyService verificationCodeService;
+
+    private final LargeUserServie largeUserServie;
 
     @ApiOperation("导出用户数据")
     @GetMapping(value = "/download")
@@ -109,25 +109,35 @@ public class UserController {
     @PostMapping
     @PreAuthorize("@el.check('user:add')")
     public ResponseEntity<Object> createUser(@Validated @RequestBody User resources){
-        checkLevel(resources);
-        // 默认密码 123456
-        resources.setPassword(passwordEncoder.encode("123456"));
-        userService.create(resources);
 
-        UserDto resou = userService.findByName(resources.getUsername());
+//        在sys_user中创建用户
+        checkLevel(resources);   // 如果当前用户的角色级别低于创建用户的角色级别，则抛出权限不足的错误
 
-        UserDto resous = userService.findById(resou.getId());
+//        如果数据库中存在这个用户名（admin），则不能创建
+        if (largeUserServie.findByUserName(resources.getUsername()) == null) {
+            // 默认密码 123456
+            resources.setPassword(passwordEncoder.encode("123456"));
+            userService.create(resources);
 
-        UserInfo re = new UserInfo();
-        re.setUserId(userService.findById(resou.getId()).getId());
-        re.setUsername(userService.findById(resou.getId()).getUsername());
-        re.setNickName(userService.findById(resou.getId()).getNickName());
-        re.setDeptId(userService.findById(resou.getId()).getDept().getId());
-        re.setDeptName( deptService.findById(userService.findById(resou.getId()).getDept().getId()).getName());
-        userInfoService.create(re);
+//        在userInfo中创建用户
+            UserDto resou = userService.findByName(resources.getUsername());
+            UserInfo re = new UserInfo();
+            re.setUserId(userService.findById(resou.getId()).getId());
+            re.setUsername(userService.findById(resou.getId()).getUsername());
+            re.setNickName(userService.findById(resou.getId()).getNickName());
+            re.setDeptId(userService.findById(resou.getId()).getDept().getId());
+            re.setDeptName( deptService.findById(userService.findById(resou.getId()).getDept().getId()).getName());
+            userInfoService.create(re);
 
+//        在user中创建用户
+            LargeUser largeUser = new LargeUser();
+            largeUser.setUsername(re.getUsername());
+            largeUser.setPassword("123456");
+            largeUserServie.create(largeUser);
 
-        return new ResponseEntity<>(HttpStatus.CREATED);
+            return new ResponseEntity<>(HttpStatus.CREATED);
+        }
+        return new ResponseEntity<>(HttpStatus.FOUND);
     }
 
     @Log("修改用户")
@@ -135,13 +145,12 @@ public class UserController {
     @PutMapping
     @PreAuthorize("@el.check('user:edit')")
     public ResponseEntity<Object> updateUser(@Validated(User.Update.class) @RequestBody User resources) throws Exception {
+        // 如果当前用户的角色级别低于创建用户的角色级别，则抛出权限不足的错误
         checkLevel(resources);
         userService.update(resources);
 
 
         UserDto resou = userService.findByName(resources.getUsername());
-
-        UserDto resous = userService.findById(resou.getId());
 
         UserInfoQueryCriteria criteria = new UserInfoQueryCriteria();
         criteria.setUsername(resources.getUsername());
@@ -182,6 +191,14 @@ public class UserController {
             }
         }
         userService.delete(ids);
+
+        Integer[] integerArray = new Integer[ids.size()];
+        int index = 0;
+        for (Long id : ids) {
+            integerArray[index++] = id.intValue();
+        }
+        largeUserServie.deleteAll(integerArray);
+
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
@@ -198,6 +215,11 @@ public class UserController {
             throw new BadRequestException("新密码不能与旧密码相同");
         }
         userService.updatePass(user.getUsername(),passwordEncoder.encode(newPass));
+
+        LargeUser largeUser = largeUserServie.findByUserName(user.getUsername());
+        largeUser.setPassword(newPass);
+        largeUserServie.update(largeUser);
+
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

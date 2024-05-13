@@ -130,7 +130,7 @@ public class PictureServiceImpl implements PictureService {
         MultipartFile multipartFile_1 = createCopyMultipartFile(multipartFile);
 
 //        上传到这个位置，是因为大屏展示的前端 访问的就是这个位置
-        String filePath = "D:\\WorkFile\\FrontCode\\IofTV-Screen-web\\src\\assets\\img\\pictures\\scene"+ File.separator + picture.getUrl() + File.separator;
+        String filePath = "D:\\WorkSpace\\JavaProject\\tky\\IofTV-Screen-web\\src\\assets\\img\\pictures\\scene"+ File.separator + picture.getUrl() + File.separator;
         File file = FileUtil.upload(multipartFile, filePath);
         //        5.如果上传文件失败（file为空），则抛出一个BadRequestException异常，提示上传失败。
         if (ObjectUtil.isNull(file)) {
