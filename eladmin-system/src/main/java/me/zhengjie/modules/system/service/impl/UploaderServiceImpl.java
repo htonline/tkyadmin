@@ -478,7 +478,7 @@ public class UploaderServiceImpl implements UploaderService {
                 OutputStream output = socket.getOutputStream();
                 PrintWriter writer = new PrintWriter(output, true);
 
-                writer.println(data.toString());
+                writer.println(data.toString()+selectedThresholdValue);
 
                 System.out.println("发送到服务器的消息：" + data + selectedThresholdValue);
             } catch (UnknownHostException e) {
