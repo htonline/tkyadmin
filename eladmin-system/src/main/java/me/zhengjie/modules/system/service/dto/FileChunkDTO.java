@@ -42,6 +42,9 @@ public class FileChunkDTO {
      */
     private String filename;
 
+    /**
+     * 阈值
+     */
     private String selectedThresholdValue;
 
     public String getSelectedThresholdValue() {
