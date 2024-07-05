@@ -37,7 +37,7 @@ public class PictureQueryCriteria{
 
     /** 精确 */
     @Query
-    private Integer tunnelId;
+    private String disNumber;
 
     /** 模糊 */
     @Query(type = Query.Type.INNER_LIKE)

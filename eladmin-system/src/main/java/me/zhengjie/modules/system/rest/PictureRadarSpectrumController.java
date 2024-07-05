@@ -92,7 +92,7 @@ public class PictureRadarSpectrumController {
     @ApiOperation("上传图片")
     @PostMapping(value = "/uploadSpectrumPicture")
     public ResponseEntity<Object> uploadPicture(@RequestParam String fileUrl,
-                                                @RequestParam String tunnelId, @RequestParam String remark,
+                                                @RequestParam String disNumber, @RequestParam String remark,
                                                 @RequestParam String remark1, @RequestParam String remark2,
                                                 @RequestParam String remark3, @RequestParam String remark4,
                                                 @RequestParam String remark5, @RequestParam String remark6,
@@ -100,7 +100,7 @@ public class PictureRadarSpectrumController {
                                                 @RequestParam("file") MultipartFile file){
         PictureRadarSpectrum pictureRadarSpectrum = new PictureRadarSpectrum();
         pictureRadarSpectrum.setFileUrl(fileUrl);
-        pictureRadarSpectrum.setTunnelId(Integer.parseInt(tunnelId));
+        pictureRadarSpectrum.setDisNumber(disNumber);
         pictureRadarSpectrum.setRemark(remark);
         pictureRadarSpectrum.setRemark1(remark1);
         pictureRadarSpectrum.setRemark2(remark2);

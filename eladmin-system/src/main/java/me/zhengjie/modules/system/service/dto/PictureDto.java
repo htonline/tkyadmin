@@ -34,7 +34,7 @@ public class PictureDto implements Serializable {
     private String url;
 
     /** 文件对应的隧道id */
-    private Integer tunnelId;
+    private String disNumber;
 
     /** 备注 */
     private String remark;

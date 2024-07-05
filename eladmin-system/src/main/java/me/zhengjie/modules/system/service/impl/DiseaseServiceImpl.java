@@ -150,7 +150,7 @@ public class DiseaseServiceImpl implements DiseaseService {
 
         List<PictureRadarSpectrum> all = pictureRadarSpectrumRepository.findAll();
         for (PictureRadarSpectrum pictureRadarSpectrum : all) {
-            if (pictureRadarSpectrum.getTunnelId() == Integer.parseInt(criteria.getRemark1())) {
+            if (pictureRadarSpectrum.getDisNumber() == criteria.getRemark1()) {
                 String accessibleURL = "http://120.46.140.233:8001/file/pictures/radarSpectrum/" + pictureRadarSpectrum.getFileUrl();
                 PictureRenderData spectrumImg = Pictures.ofUrl(accessibleURL).size(270, 227).create();
                 map.put("spectrumImg", spectrumImg);

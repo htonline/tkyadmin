@@ -101,7 +101,7 @@ public class PictureController {
                                                 @RequestParam("file") MultipartFile file){
         Picture picture = new Picture();
         picture.setUrl(url);
-        picture.setTunnelId(Integer.parseInt(tunnelId));
+        picture.setDisNumber(tunnelId);
         picture.setRemark(remark);
         picture.setRemark1(remark1);
         picture.setRemark2(remark2);

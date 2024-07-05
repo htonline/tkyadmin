@@ -358,7 +358,7 @@ public class UploaderServiceImpl implements UploaderService {
                                     } else {
                                         save.setFileUrl(lastFolderName + "/" + imgName);
                                     }
-                                    save.setTunnelId(diseaseInfoID);
+                                    save.setDisNumber(String.valueOf(diseaseInfoID));
                                     pictureRadarSpectrumRepository.save(save);
 
                                     /**

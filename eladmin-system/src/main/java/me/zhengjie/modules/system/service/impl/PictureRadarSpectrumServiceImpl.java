@@ -100,7 +100,7 @@ public class PictureRadarSpectrumServiceImpl implements PictureRadarSpectrumServ
         for (PictureRadarSpectrumDto pictureRadarSpectrum : all) {
             Map<String,Object> map = new LinkedHashMap<>();
             map.put("文件存储路径", pictureRadarSpectrum.getFileUrl());
-            map.put("外键，关联tunel表", pictureRadarSpectrum.getTunnelId());
+            map.put("外键，关联tunel表", pictureRadarSpectrum.getDisNumber());
             map.put("备注", pictureRadarSpectrum.getRemark1());
             map.put("备注", pictureRadarSpectrum.getRemark2());
             map.put("备注", pictureRadarSpectrum.getRemark3());

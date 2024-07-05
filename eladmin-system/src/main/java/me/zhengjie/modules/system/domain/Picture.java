@@ -44,9 +44,9 @@ public class Picture implements Serializable {
     @ApiModelProperty(value = "文件路径")
     private String url;
 
-    @Column(name = "tunnel_id")
+    @Column(name = "dis_number")
     @ApiModelProperty(value = "文件对应的隧道id")
-    private Integer tunnelId;
+    private String disNumber;
 
     @Column(name = "remark")
     @ApiModelProperty(value = "备注")

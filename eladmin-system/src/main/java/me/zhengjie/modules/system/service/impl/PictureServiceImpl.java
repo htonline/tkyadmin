@@ -108,7 +108,7 @@ public class PictureServiceImpl implements PictureService {
         for (PictureDto picture : all) {
             Map<String,Object> map = new LinkedHashMap<>();
             map.put("文件路径", picture.getUrl());
-            map.put("文件对应的隧道id", picture.getTunnelId());
+            map.put("文件对应的隧道id", picture.getDisNumber());
             map.put("备注", picture.getRemark());
             map.put("备注", picture.getRemark1());
             map.put("备注", picture.getRemark2());

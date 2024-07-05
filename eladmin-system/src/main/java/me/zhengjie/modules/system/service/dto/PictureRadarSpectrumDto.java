@@ -34,7 +34,7 @@ public class PictureRadarSpectrumDto implements Serializable {
     private String fileUrl;
 
     /** 外键，关联tunel表 */
-    private Integer tunnelId;
+    private String disNumber;
 
     /** 备注 */
     private String remark1;

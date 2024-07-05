@@ -44,9 +44,9 @@ public class PictureRadarSpectrum implements Serializable {
     @ApiModelProperty(value = "文件存储路径")
     private String fileUrl;
 
-    @Column(name = "tunnel_id")
+    @Column(name = "dis_number")
     @ApiModelProperty(value = "外键，关联tunel表")
-    private Integer tunnelId;
+    private String disNumber;
 
     @Column(name = "remark1")
     @ApiModelProperty(value = "备注")
