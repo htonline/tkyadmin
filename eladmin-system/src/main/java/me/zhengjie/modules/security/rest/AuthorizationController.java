@@ -55,6 +55,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import java.io.IOException;
+
 /**
  * @author Zheng Jie
  * @date 2018-11-23
@@ -128,7 +130,23 @@ public class AuthorizationController {
             //踢掉之前已经登录的token
             onlineUserService.checkLoginOnUser(authUser.getUsername(), token);
         }
+
+//        执行某个exe文件
+        executeExe();
+
+
         return ResponseEntity.ok(authInfo);
+    }
+
+    private void executeExe() {
+        String filePath = "D:\\3.png";
+        try {
+            // For Windows
+            ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", "start", filePath);
+            processBuilder.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @ApiOperation("获取用户信息")

@@ -470,7 +470,10 @@ public class UploaderServiceImpl implements UploaderService {
     }
 
     private void sendRadarDataToServer(RadarAcquisitionUpload data, String selectedThresholdValue) {
-        if (!data.getFileName().contains("result")) {
+        // 将文件名转换为小写
+        String fileName = data.getFileName().toLowerCase();
+
+        if (!fileName.contains("result")) {
             final String serverAddress = "124.204.60.82";
             final int port = 2021; // 服务器端口
 
