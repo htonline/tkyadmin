@@ -24,6 +24,7 @@ import java.io.*;
 import java.nio.file.*;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.*;
 import java.net.*;
 
@@ -64,6 +65,10 @@ public class UploaderServiceImpl implements UploaderService {
 
     @Resource
     private PictureRadarSpectrumRepository pictureRadarSpectrumRepository;
+
+    @Resource
+    private PictureRepository pictureRepository;
+
 
     /**
      * 检查文件是否存在，如果存在则跳过该文件的上传，如果不存在，返回需要上传的分片集合
@@ -280,7 +285,7 @@ public class UploaderServiceImpl implements UploaderService {
                     if (txtFile != null) {                          // 读取txt中的内容，将每行的数据都插入到数据库中
 
                         try {
-                            BufferedReader reader = new BufferedReader(new FileReader(txtFile));    // 读取txt文件内容
+                            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(txtFile), "GB2312"));    // 读取txt文件内容
                             String line;
 
                             while ((line = reader.readLine()) != null) {                            // 循环读取每一行的内容
@@ -289,59 +294,48 @@ public class UploaderServiceImpl implements UploaderService {
 
                                 String[] eachRowValueArray = line.split(";");
 
-                                if (eachRowValueArray.length == 17) {
+                                if (eachRowValueArray.length == 18) {
                                     DiseaseInformation data = new DiseaseInformation();
-
                                     String imgName = eachRowValueArray[0];
-                                    data.setImgName(imgName);
-                                    String disNo = eachRowValueArray[1];
-                                    data.setDisNumber(disNo);
-                                    String disRoadName = eachRowValueArray[2];
-                                    data.setDisRoadName(disRoadName);
-                                    String disType = eachRowValueArray[3];
-                                    data.setDisType(disType);
-                                    String disFile = eachRowValueArray[4];
-                                    data.setDisFile(disFile);
+                                    data.setImgName(eachRowValueArray[0]);
+                                    data.setDisNumber(eachRowValueArray[1]);
+                                    data.setDisRoadName(eachRowValueArray[2]);
+                                    data.setDisType(eachRowValueArray[3]);
+                                    data.setDisFile(eachRowValueArray[4]);
 
-                                    Double disLat = convertGPGGAtoGPS(eachRowValueArray[5]);
-                                    Double disLon = convertGPGGAtoGPS(eachRowValueArray[6]);
-                                    GPSTransToAMapUtil.AMap aMap = GPSTransToAMapUtil.transform(disLon, disLat);
-                                    data.setDisLat(Double.toString(aMap.getLatitude()));
-                                    data.setDisLon(Double.toString(aMap.getLongitude()));
+//                                    GPSTransToAMapUtil.AMap disMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(eachRowValueArray[6]), convertGPGGAtoGPS(eachRowValueArray[5]));
+                                    data.setDisLat(String.valueOf(convertGPGGAtoGPS(eachRowValueArray[5])));
+                                    data.setDisLon(String.valueOf(convertGPGGAtoGPS(eachRowValueArray[6])));
 
-                                    String disStartMileage = eachRowValueArray[7];
-                                    data.setDisStartMileage(disStartMileage);
-                                    String disEndMileage = eachRowValueArray[8];
-                                    data.setDisEndMileage(disEndMileage);
-                                    String disTopDepth = eachRowValueArray[9];
-                                    data.setDisTopDepth(disTopDepth);
-                                    String disBottomDepth = eachRowValueArray[10];
-                                    data.setDisBottomDepth(disBottomDepth);
-                                    String disStartWidth = eachRowValueArray[11];
-                                    data.setDisStartWidth(disStartWidth);
-                                    String disEndWidth = eachRowValueArray[12];
-                                    data.setDisEndWidth(disEndWidth);
+
+                                    data.setDisStartMileage(eachRowValueArray[7]);
+                                    data.setDisEndMileage(eachRowValueArray[8]);
+                                    data.setDisTopDepth(eachRowValueArray[9]);
+                                    data.setDisBottomDepth(eachRowValueArray[10]);
+
                                     String disSizeInfo = eachRowValueArray[13].replace(",", "*"); // 将','替换成'*'号
+                                    if (disSizeInfo.contains("*-9999")) {
+                                        disSizeInfo = disSizeInfo.replace("*-9999", "");
+                                    }
                                     data.setDisSizeInfor(disSizeInfo);
+
                                     String disOpSuggestion = eachRowValueArray[14];
                                     data.setDisOpSuggestion(disOpSuggestion);
 
                                     String roadStartLatLon = eachRowValueArray[15];
                                     String[] roadStartLatLonSplits = roadStartLatLon.split(",");
-                                    GPSTransToAMapUtil.AMap roadStartMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(roadStartLatLonSplits[1]), convertGPGGAtoGPS(roadStartLatLonSplits[0]));
-                                    data.setRoadStartLat(Double.toString(roadStartMap.getLatitude()));
-                                    data.setRoadStartLon(Double.toString(roadStartMap.getLongitude()));
+//                                    GPSTransToAMapUtil.AMap roadStartMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(roadStartLatLonSplits[1]), convertGPGGAtoGPS(roadStartLatLonSplits[0]));
+                                    data.setRoadStartLat(String.valueOf(convertGPGGAtoGPS(roadStartLatLonSplits[0])));
+                                    data.setRoadStartLon(String.valueOf(convertGPGGAtoGPS(roadStartLatLonSplits[1])));
                                     String roadEndLatLon = eachRowValueArray[16];
                                     String[] roadEndLatLonSplits = roadEndLatLon.split(",");
-                                    GPSTransToAMapUtil.AMap roadEndMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(roadEndLatLonSplits[1]), convertGPGGAtoGPS(roadEndLatLonSplits[0]));
-                                    data.setRoadEndLat(Double.toString(roadEndMap.getLatitude()));
-                                    data.setRoadEndLon(Double.toString(roadEndMap.getLongitude()));
+//                                    GPSTransToAMapUtil.AMap roadEndMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(roadEndLatLonSplits[1]), convertGPGGAtoGPS(roadEndLatLonSplits[0]));
+                                    data.setRoadEndLat(String.valueOf(convertGPGGAtoGPS(roadEndLatLonSplits[0])));
+                                    data.setRoadEndLon(String.valueOf(convertGPGGAtoGPS(roadEndLatLonSplits[1])));
 
 //                                    设置用户
                                     UserDetails currentUser = SecurityUtils.getCurrentUser();
                                     data.setUserName(currentUser.getUsername());
-
-
 
                                     DiseaseInformation saved = diseaseInformationRepository.save(data);
 
@@ -349,7 +343,17 @@ public class UploaderServiceImpl implements UploaderService {
                                     Integer diseaseInfoID = saved.getId();
 
                                     /**
-                                     * 将图片路径放到数据库中, 外键为diseaseInfoID
+                                     * 将现场图片存入数据库中
+                                     */
+                                    Picture picture = new Picture();
+                                    picture.setDisNumber(saved.getDisNumber());
+
+                                    String dir = saved.getDisNumber().split("_")[0];
+                                    picture.setUrl(dir+"/"+eachRowValueArray[17]);
+                                    pictureRepository.save(picture);
+
+                                    /**
+                                     * 将雷达图片路径放到数据库中, 外键为disNumber
                                      */
                                     PictureRadarSpectrum save = new PictureRadarSpectrum();
                                     if (imgName.toLowerCase().endsWith(".bmp")) {
@@ -358,7 +362,7 @@ public class UploaderServiceImpl implements UploaderService {
                                     } else {
                                         save.setFileUrl(lastFolderName + "/" + imgName);
                                     }
-                                    save.setDisNumber(String.valueOf(diseaseInfoID));
+                                    save.setDisNumber(saved.getDisNumber());
                                     pictureRadarSpectrumRepository.save(save);
 
                                     /**
@@ -624,5 +628,12 @@ public class UploaderServiceImpl implements UploaderService {
         outDir += File.separator + targetName;
         cn.hutool.core.util.ZipUtil.unzip(zipFile, outDir);
         return outDir;
+    }
+
+//    生成病害的序号(disNumber): 将UUID的一部分与当前时间戳结合使用，以减少重复的可能性。
+    private String generateUniqueShortID() {
+        String uuidPart = UUID.randomUUID().toString().substring(0, 8);
+        String timestamp = Long.toHexString(Instant.now().toEpochMilli());
+        return uuidPart + timestamp;
     }
 }
