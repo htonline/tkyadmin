@@ -64,10 +64,13 @@ public class UploaderServiceImpl implements UploaderService {
     private DiseaseInformationRepository diseaseInformationRepository;      // 将压缩包数据传入diseaseInformation表
 
     @Resource
-    private PictureRadarSpectrumRepository pictureRadarSpectrumRepository;
+    private PictureRadarSpectrumRepository pictureRadarSpectrumRepository;  // 雷达图片
 
     @Resource
-    private PictureRepository pictureRepository;
+    private PictureRepository pictureRepository;                // 现场图片
+
+    @Resource
+    private DiseaseModelRepository diseaseModelRepository;      // 病害模型
 
 
     /**
@@ -319,6 +322,19 @@ public class UploaderServiceImpl implements UploaderService {
                                     }
                                     data.setDisSizeInfor(disSizeInfo);
 
+//                                    输入长宽高，导出glb模型。将病害模型数据注入数据库
+                                    String fileName = generateModel(disSizeInfo);
+                                    DiseaseModel model = new DiseaseModel();
+                                    model.setMdelUrl(fileName);
+                                    model.setDisNumber(eachRowValueArray[1]);
+                                    diseaseModelRepository.save(model);
+
+                                    DiseaseModel model_road = new DiseaseModel();
+                                    model_road.setMdelUrl("road.gltf");
+                                    model_road.setDisNumber(eachRowValueArray[1]);
+                                    diseaseModelRepository.save(model_road);
+
+
                                     String disOpSuggestion = eachRowValueArray[14];
                                     data.setDisOpSuggestion(disOpSuggestion);
 
@@ -415,6 +431,94 @@ public class UploaderServiceImpl implements UploaderService {
 
         }
 
+    }
+
+    private String generateModel(String disSizeInfo) {
+
+        String[] parts = disSizeInfo.split("\\*");
+
+        if (parts.length != 3) {
+            // 长度不等于3时跳过生成过程并返回空字符串
+            return "";
+        }
+
+        String length = parts[0];
+        String width = parts[1];
+        String height = parts[2];
+
+
+        // 定义Python脚本的路径
+        String pythonScriptPath = "D:\\WorkSpace\\JavaProject\\tky\\tkyadmin\\eladmin-system\\src\\main\\resources\\template\\generate3.py";
+
+        // 调用生成三维坐标的模式
+        String generateMode = "generate";
+        String numPoints = "8000";
+        String outputFile = "D:\\generateModel\\road12.csv";
+
+        // 调用重建曲面的模式
+        String reconstructMode = "reconstruct";
+        String inputFile = outputFile;
+
+        // 生成唯一的文件名
+        String uniqueId = UUID.randomUUID().toString();
+        String fileName = "reconstructed_mesh_" + uniqueId + ".glb";
+        String outputGLBFile = "D:\\WorkSpace\\JavaProject\\tky\\IofTV-Screen-web\\src\\assets\\models" + File.separator + fileName;
+
+        // 生成三维坐标
+        String[] generateCommand = new String[] {
+                "python",
+                pythonScriptPath,
+                generateMode,
+                length,
+                width,
+                height,
+                numPoints,
+                outputFile
+        };
+
+        // 重建曲面并导出为GLB
+        String[] reconstructCommand = new String[] {
+                "python",
+                pythonScriptPath,
+                reconstructMode,
+                inputFile,
+                outputGLBFile
+        };
+
+        // 执行生成三维坐标的命令
+        executePythonScript(generateCommand);
+
+        // 执行重建曲面并导出为GLB的命令
+        executePythonScript(reconstructCommand);
+
+        return fileName;
+
+    }
+    private static void executePythonScript(String[] command) {
+        try {
+            // 启动进程
+            ProcessBuilder pb = new ProcessBuilder(command);
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+
+            // 读取脚本输出
+            BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = in.readLine()) != null) {
+                System.out.println(line);
+            }
+            in.close();
+
+            // 等待脚本执行完成
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                System.out.println("Script executed successfully");
+            } else {
+                System.out.println("Script execution failed with exit code " + exitCode);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private static void scanFolder(File folder, List<String> imgFolders, List<String> txtFilePaths) {

@@ -183,6 +183,13 @@
             <version>1.12.1</version>
         </dependency>
 
+<!--&lt;!&ndash;        雪花算法，生成唯一且有序的id&ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>com.github.yitter</groupId>-->
+<!--            <artifactId>idgenerator</artifactId>-->
+<!--            <version>1.0.6</version>-->
+<!--        </dependency>-->
+
         <!-- 导出Word模板-->
         <dependency>
             <groupId>com.deepoove</groupId>
