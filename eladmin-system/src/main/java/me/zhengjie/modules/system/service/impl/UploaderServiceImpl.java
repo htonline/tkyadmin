@@ -372,6 +372,11 @@ public class UploaderServiceImpl implements UploaderService {
                                     model.setDisNumber(eachRowValueArray[1]);
                                     diseaseModelRepository.save(model);
 
+                                    DiseaseModel model_road = new DiseaseModel();
+                                    model_road.setMdelUrl("road_1.gltf");
+                                    model_road.setDisNumber(eachRowValueArray[1]);
+                                    diseaseModelRepository.save(model_road);
+
                                     data.setDisOpSuggestion(eachRowValueArray[14]);
                                     String roadStartLatLon = eachRowValueArray[15];
                                     String[] roadStartLatLonSplits = roadStartLatLon.split(",");
@@ -513,7 +518,7 @@ public class UploaderServiceImpl implements UploaderService {
                                         diseaseModelRepository.save(model);
 
                                         DiseaseModel model_road = new DiseaseModel();
-                                        model_road.setMdelUrl("road.gltf");
+                                        model_road.setMdelUrl("road_1.gltf");
                                         model_road.setDisNumber(eachRowValueArray[1]);
                                         diseaseModelRepository.save(model_road);
 
@@ -686,7 +691,7 @@ public class UploaderServiceImpl implements UploaderService {
 
         String[] parts = disSizeInfo.split("\\*");
 
-        if (parts.length != 3 || parts.length != 2) {
+        if (parts.length != 3 && parts.length != 2) {
             // 长度不等于3时跳过生成过程并返回空字符串
             return "";
         }
@@ -724,19 +729,32 @@ public class UploaderServiceImpl implements UploaderService {
         // 指定 Python 可执行文件的完整路径
         String pythonExePath = "D:\\Software\\anaconda3\\envs\\PyLab\\python.exe";
 
-        // 生成三维坐标
-        String[] generateCommand = new String[] {
-                pythonExePath,
-                pythonScriptPath,
-                generateMode,
-                length,
-                width,
-                height,
-                numPoints,
-                outputFile
-        };
+        // 生成三维坐标命令
+        String[] generateCommand;
+        if (width.isEmpty()) {
+            generateCommand = new String[] {
+                    pythonExePath,
+                    pythonScriptPath,
+                    generateMode,
+                    length,
+                    height,
+                    numPoints,
+                    outputFile
+            };
+        } else {
+            generateCommand = new String[] {
+                    pythonExePath,
+                    pythonScriptPath,
+                    generateMode,
+                    length,
+                    width,
+                    height,
+                    numPoints,
+                    outputFile
+            };
+        }
 
-        // 重建曲面并导出为GLB
+        // 重建曲面并导出为GLB命令
         String[] reconstructCommand = new String[] {
                 pythonExePath,
                 pythonScriptPath,
