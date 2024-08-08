@@ -8,6 +8,12 @@ import me.zhengjie.modules.system.service.UploaderService;
 import me.zhengjie.modules.system.service.dto.FileChunkDTO;
 import me.zhengjie.modules.system.service.dto.FileChunkResultDTO;
 import me.zhengjie.utils.SecurityUtils;
+import net.lingala.zip4j.core.ZipFile;
+import net.lingala.zip4j.exception.ZipException;
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
+import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.poi.ss.formula.functions.T;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
@@ -141,8 +147,6 @@ public class UploaderServiceImpl implements UploaderService {
                 //=================================解压缩文件夹，读取识别后的数据，存入数据库=================================
                 unZipAndExtractAndStoreData(newFile.getAbsolutePath(), newFile.getParent());
 
-
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -265,165 +269,332 @@ public class UploaderServiceImpl implements UploaderService {
 
     //            解压缩文件夹，读取识别后的数据，存入数据库
     private void unZipAndExtractAndStoreData(String filePath, String fileFolderPath) {
-        String outDir = unzip_hutool(filePath, fileFolderPath);// 将上传的压缩包解压到上传目录
+        String outDir = extract(filePath, fileFolderPath);// 将上传的压缩包解压到上传目录
         // 创建File对象表示文件夹
         File folder = new File(outDir);
 
         // 检查文件夹是否存在
         if (folder.exists() && folder.isDirectory()) {
             String lastFolderName = folder.getName();        // 获取最后一个文件夹的名字(即解压缩后的文件夹名)
+
+            String sceneImg = "(附现场";
+            if (lastFolderName.contains(sceneImg)) {
+                List<String> sceneImgFiles = new ArrayList<>();
+                List<String> txtFilePaths = new ArrayList<>();
+                scanFolder(folder, sceneImgFiles, txtFilePaths);
+
+                for (String sceneImgFile : sceneImgFiles) {
+                    File imgFile = new File(sceneImgFile);
+                    if (imgFile.isFile() && isImageFile(imgFile)) {
+                        String targetFolderPath = "D:\\WorkSpace\\JavaProject\\tky\\IofTV-Screen-web\\src\\assets\\img\\pictures\\scene";
+
+                        // 获取图片文件的上一层文件夹名称
+                        Path sourcePath = Paths.get(sceneImgFile);
+                        Path parentFolderName = sourcePath.getParent().getFileName();
+
+                        // 构建目标路径
+                        Path targetPath = Paths.get(targetFolderPath, parentFolderName.toString(), imgFile.getName());
+
+                        try {
+                            // 确保目标文件夹存在
+                            Files.createDirectories(targetPath.getParent());
+                            // 复制文件;
+                            // StandardCopyOption.REPLACE_EXISTING复制文件并替换已有文件（如果存在）。
+                            Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                            System.out.println("文件复制成功：" + targetPath);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
             String result = "result";
-
-            if (lastFolderName.toLowerCase().contains(result.toLowerCase())) {        // 判断文件夹名中是否包含"result"这个单词
-
+            // 判断文件夹名中是否包含"result"这个单词
+            if (lastFolderName.toLowerCase().contains(result.toLowerCase())) {
                 // 获取该文件夹下的所有图片文件和txt文件
                 List<String> imgFolders = new ArrayList<>();
                 List<String> txtFilePaths = new ArrayList<>();
                 scanFolder(folder, imgFolders, txtFilePaths);
 
-                for (String txtFilePath : txtFilePaths) {           // 遍历txt文件
+                String gprFile = "gpr0-diseaseInfo.txt";
+                File targetFileObj = null;
 
-                    File txtFile = new File(txtFilePath);           // 将txt文件路径变成一个File对象
+//                判断是否包含gpr0-diseaseInfo.txt文件
+                for (String txtFilePath : txtFilePaths) {
+                    if (txtFilePath.endsWith(gprFile)) {
+                        targetFileObj = new File(txtFilePath);
+                        break;
+                    }
+                }
 
-                    if (txtFile != null) {                          // 读取txt中的内容，将每行的数据都插入到数据库中
-
+                if (targetFileObj != null && targetFileObj.exists()) {
+                    File txtFile = targetFileObj;
+                    if (txtFile != null) {
                         try {
                             BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(txtFile), "GB2312"));    // 读取txt文件内容
                             String line;
 
-                            while ((line = reader.readLine()) != null) {                            // 循环读取每一行的内容
-
+                            while ((line = reader.readLine()) != null) {
                                 System.out.println("Read line from the txt file: " + line);         // 输出每一行的内容
-
                                 String[] eachRowValueArray = line.split(";");
-
                                 if (eachRowValueArray.length == 18) {
                                     DiseaseInformation data = new DiseaseInformation();
-                                    String imgName = eachRowValueArray[0];
+                                    String imgName= eachRowValueArray[0];
                                     data.setImgName(eachRowValueArray[0]);
                                     data.setDisNumber(eachRowValueArray[1]);
                                     data.setDisRoadName(eachRowValueArray[2]);
                                     data.setDisType(eachRowValueArray[3]);
                                     data.setDisFile(eachRowValueArray[4]);
-
-//                                    GPSTransToAMapUtil.AMap disMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(eachRowValueArray[6]), convertGPGGAtoGPS(eachRowValueArray[5]));
                                     data.setDisLat(String.valueOf(convertGPGGAtoGPS(eachRowValueArray[5])));
                                     data.setDisLon(String.valueOf(convertGPGGAtoGPS(eachRowValueArray[6])));
-
-
                                     data.setDisStartMileage(eachRowValueArray[7]);
                                     data.setDisEndMileage(eachRowValueArray[8]);
                                     data.setDisTopDepth(eachRowValueArray[9]);
                                     data.setDisBottomDepth(eachRowValueArray[10]);
-
                                     String disSizeInfo = eachRowValueArray[13].replace(",", "*"); // 将','替换成'*'号
                                     if (disSizeInfo.contains("*-9999")) {
                                         disSizeInfo = disSizeInfo.replace("*-9999", "");
                                     }
                                     data.setDisSizeInfor(disSizeInfo);
 
-//                                    输入长宽高，导出glb模型。将病害模型数据注入数据库
                                     String fileName = generateModel(disSizeInfo);
                                     DiseaseModel model = new DiseaseModel();
                                     model.setMdelUrl(fileName);
                                     model.setDisNumber(eachRowValueArray[1]);
                                     diseaseModelRepository.save(model);
 
-                                    DiseaseModel model_road = new DiseaseModel();
-                                    model_road.setMdelUrl("road.gltf");
-                                    model_road.setDisNumber(eachRowValueArray[1]);
-                                    diseaseModelRepository.save(model_road);
-
-
-                                    String disOpSuggestion = eachRowValueArray[14];
-                                    data.setDisOpSuggestion(disOpSuggestion);
-
+                                    data.setDisOpSuggestion(eachRowValueArray[14]);
                                     String roadStartLatLon = eachRowValueArray[15];
                                     String[] roadStartLatLonSplits = roadStartLatLon.split(",");
-//                                    GPSTransToAMapUtil.AMap roadStartMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(roadStartLatLonSplits[1]), convertGPGGAtoGPS(roadStartLatLonSplits[0]));
                                     data.setRoadStartLat(String.valueOf(convertGPGGAtoGPS(roadStartLatLonSplits[0])));
                                     data.setRoadStartLon(String.valueOf(convertGPGGAtoGPS(roadStartLatLonSplits[1])));
                                     String roadEndLatLon = eachRowValueArray[16];
                                     String[] roadEndLatLonSplits = roadEndLatLon.split(",");
-//                                    GPSTransToAMapUtil.AMap roadEndMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(roadEndLatLonSplits[1]), convertGPGGAtoGPS(roadEndLatLonSplits[0]));
                                     data.setRoadEndLat(String.valueOf(convertGPGGAtoGPS(roadEndLatLonSplits[0])));
                                     data.setRoadEndLon(String.valueOf(convertGPGGAtoGPS(roadEndLatLonSplits[1])));
-
-//                                    设置用户
                                     UserDetails currentUser = SecurityUtils.getCurrentUser();
                                     data.setUserName(currentUser.getUsername());
 
                                     DiseaseInformation saved = diseaseInformationRepository.save(data);
 
-                                    // 存入之后,获取它的ID
-                                    Integer diseaseInfoID = saved.getId();
+//                                    存入雷达图谱
+                                    String[] imgNames = imgName.split(",");
 
-                                    /**
-                                     * 将现场图片存入数据库中
-                                     */
-                                    Picture picture = new Picture();
-                                    picture.setDisNumber(saved.getDisNumber());
-
-                                    String dir = saved.getDisNumber().split("_")[0];
-                                    picture.setUrl(dir+"/"+eachRowValueArray[17]);
-                                    pictureRepository.save(picture);
-
-                                    /**
-                                     * 将雷达图片路径放到数据库中, 外键为disNumber
-                                     */
-                                    PictureRadarSpectrum save = new PictureRadarSpectrum();
-                                    if (imgName.toLowerCase().endsWith(".bmp")) {
-                                        String pngName = imgName.replace(".bmp", ".png");
-                                        save.setFileUrl(lastFolderName + "/" + pngName);
-                                    } else {
-                                        save.setFileUrl(lastFolderName + "/" + imgName);
+                                    for (int i = 0; i < imgNames.length; i++) {
+                                        String img = imgNames[i];
+                                        PictureRadarSpectrum save = new PictureRadarSpectrum();
+//                                        将图片路径存入数据库
+                                        if (img.toLowerCase().endsWith(".bmp")) {
+                                            String pngName = img.replace(".bmp", ".png");
+                                            save.setFileUrl(lastFolderName + "/" + pngName);
+                                        } else {
+                                            save.setFileUrl(lastFolderName + "/" + img);
+                                        }
+                                        save.setDisNumber(saved.getDisNumber());
+//                                       如果是第一张,就是B-scan;如果是第二张,就是C-scan
+                                        if (i == 0) {
+                                            save.setRemark("B-scan");
+                                        } else if (i == 1) {
+                                            save.setRemark("C-scan");
+                                        }
+                                        pictureRadarSpectrumRepository.save(save);
                                     }
-                                    save.setDisNumber(saved.getDisNumber());
-                                    pictureRadarSpectrumRepository.save(save);
 
-                                    /**
-                                     * 将图片复制到对应的地方
-                                     */
-                                    for (String imgFolder : imgFolders) {
-                                        File imgFile = new File(imgFolder);
-                                        if (imgFile.getName().equals(imgName)) {
-                                            if (imgFile.isFile() && isImageFile(imgFile)) {
-                                                String targetFolderPath = "D:\\WorkSpace\\JavaProject\\tky\\IofTV-Screen-web\\src\\assets\\img\\pictures\\radarSpectrum";
+                                    for (String img : imgNames) {
+                                        // 将图片存入对应的位置
+                                        for (String imgFolder : imgFolders) {
+                                            File imgFile = new File(imgFolder);
+                                            if (imgFile.getName().equals(img)) {
+                                                if (imgFile.isFile() && isImageFile(imgFile)) {
+                                                    String targetFolderPath = "D:\\WorkSpace\\JavaProject\\tky\\IofTV-Screen-web\\src\\assets\\img\\pictures\\radarSpectrum";
 
-                                                if (imgFile.getAbsolutePath().endsWith(".bmp")) {       // 如果是bmp格式的文件，将bmp格式的图片文件转储PNG格式
-                                                    try {
-                                                        String pngImgFilePath = imgFile.getAbsolutePath().replace(".bmp", ".png");
-                                                        // 读取BMP文件
-                                                        BufferedImage image = ImageIO.read(new File(imgFile.getAbsolutePath()));
+                                                    if (imgFile.getAbsolutePath().endsWith(".bmp")) {       // 如果是bmp格式的文件，将bmp格式的图片文件转储PNG格式
+                                                        try {
+                                                            String pngImgFilePath = imgFile.getAbsolutePath().replace(".bmp", ".png");
+                                                            // 读取BMP文件
+                                                            BufferedImage image = ImageIO.read(new File(imgFile.getAbsolutePath()));
 
-                                                        // 将图像写入PNG文件
-                                                        File pngImg = new File(pngImgFilePath);
-                                                        ImageIO.write(image, "png", pngImg);
+                                                            // 将图像写入PNG文件
+                                                            File pngImg = new File(pngImgFilePath);
+                                                            ImageIO.write(image, "png", pngImg);
 
-                                                        copyImage(pngImg,  targetFolderPath + File.separator + lastFolderName + File.separator);
+                                                            copyImage(pngImg,  targetFolderPath + File.separator + lastFolderName + File.separator);
 
-                                                        System.out.println("转换完成！");
-                                                    } catch (IOException e) {
-                                                        e.printStackTrace();
+                                                            System.out.println("转换完成！");
+                                                        } catch (IOException e) {
+                                                            e.printStackTrace();
+                                                        }
+                                                    } else {
+                                                        // 复制图片到目标路径
+                                                        copyImage(imgFile,  targetFolderPath + File.separator + lastFolderName + File.separator);
                                                     }
-                                                } else {
-                                                    // 复制图片到目标路径
-                                                    copyImage(imgFile,  targetFolderPath + File.separator + lastFolderName + File.separator);
+                                                    break;
                                                 }
-                                                break;
+                                            }
+                                        }
+                                    }
+
+
+
+
+
+                                }
+
+
+
+                            }
+
+
+                            } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+
+                } else {
+//                    不包含，二维的
+                    for (String txtFilePath : txtFilePaths) {           // 遍历txt文件
+
+                        File txtFile = new File(txtFilePath);           // 将txt文件路径变成一个File对象
+
+                        if (txtFile != null) {                          // 读取txt中的内容，将每行的数据都插入到数据库中
+
+                            try {
+                                BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(txtFile), "GB2312"));    // 读取txt文件内容
+                                String line;
+
+                                while ((line = reader.readLine()) != null) {                            // 循环读取每一行的内容
+
+                                    System.out.println("Read line from the txt file: " + line);         // 输出每一行的内容
+
+                                    String[] eachRowValueArray = line.split(";");
+
+                                    if (eachRowValueArray.length == 18) {
+                                        DiseaseInformation data = new DiseaseInformation();
+                                        String imgName = eachRowValueArray[0];
+                                        data.setImgName(eachRowValueArray[0]);
+                                        data.setDisNumber(eachRowValueArray[1]);
+                                        data.setDisRoadName(eachRowValueArray[2]);
+                                        data.setDisType(eachRowValueArray[3]);
+                                        data.setDisFile(eachRowValueArray[4]);
+
+//                                    GPSTransToAMapUtil.AMap disMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(eachRowValueArray[6]), convertGPGGAtoGPS(eachRowValueArray[5]));
+                                        data.setDisLat(String.valueOf(convertGPGGAtoGPS(eachRowValueArray[5])));
+                                        data.setDisLon(String.valueOf(convertGPGGAtoGPS(eachRowValueArray[6])));
+
+
+                                        data.setDisStartMileage(eachRowValueArray[7]);
+                                        data.setDisEndMileage(eachRowValueArray[8]);
+                                        data.setDisTopDepth(eachRowValueArray[9]);
+                                        data.setDisBottomDepth(eachRowValueArray[10]);
+
+                                        String disSizeInfo = eachRowValueArray[13].replace(",", "*"); // 将','替换成'*'号
+                                        if (disSizeInfo.contains("*-9999")) {
+                                            disSizeInfo = disSizeInfo.replace("*-9999", "");
+                                        }
+                                        data.setDisSizeInfor(disSizeInfo);
+
+//                                    输入长宽高，导出glb模型。将病害模型数据注入数据库
+                                        String fileName = generateModel(disSizeInfo);
+                                        DiseaseModel model = new DiseaseModel();
+                                        model.setMdelUrl(fileName);
+                                        model.setDisNumber(eachRowValueArray[1]);
+                                        diseaseModelRepository.save(model);
+
+                                        DiseaseModel model_road = new DiseaseModel();
+                                        model_road.setMdelUrl("road.gltf");
+                                        model_road.setDisNumber(eachRowValueArray[1]);
+                                        diseaseModelRepository.save(model_road);
+
+
+                                        String disOpSuggestion = eachRowValueArray[14];
+                                        data.setDisOpSuggestion(disOpSuggestion);
+
+                                        String roadStartLatLon = eachRowValueArray[15];
+                                        String[] roadStartLatLonSplits = roadStartLatLon.split(",");
+//                                    GPSTransToAMapUtil.AMap roadStartMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(roadStartLatLonSplits[1]), convertGPGGAtoGPS(roadStartLatLonSplits[0]));
+                                        data.setRoadStartLat(String.valueOf(convertGPGGAtoGPS(roadStartLatLonSplits[0])));
+                                        data.setRoadStartLon(String.valueOf(convertGPGGAtoGPS(roadStartLatLonSplits[1])));
+                                        String roadEndLatLon = eachRowValueArray[16];
+                                        String[] roadEndLatLonSplits = roadEndLatLon.split(",");
+//                                    GPSTransToAMapUtil.AMap roadEndMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(roadEndLatLonSplits[1]), convertGPGGAtoGPS(roadEndLatLonSplits[0]));
+                                        data.setRoadEndLat(String.valueOf(convertGPGGAtoGPS(roadEndLatLonSplits[0])));
+                                        data.setRoadEndLon(String.valueOf(convertGPGGAtoGPS(roadEndLatLonSplits[1])));
+
+//                                    设置用户
+                                        UserDetails currentUser = SecurityUtils.getCurrentUser();
+                                        data.setUserName(currentUser.getUsername());
+
+                                        DiseaseInformation saved = diseaseInformationRepository.save(data);
+
+                                        /**
+                                         * 将现场图片存入数据库中
+                                         */
+                                        Picture picture = new Picture();
+                                        picture.setDisNumber(saved.getDisNumber());
+
+                                        String dir = saved.getDisNumber().split("_")[0];
+                                        picture.setUrl(dir+"/"+eachRowValueArray[17]);
+                                        pictureRepository.save(picture);
+
+                                        /**
+                                         * 将雷达图片路径放到数据库中, 外键为disNumber
+                                         */
+                                        PictureRadarSpectrum save = new PictureRadarSpectrum();
+                                        if (imgName.toLowerCase().endsWith(".bmp")) {
+                                            String pngName = imgName.replace(".bmp", ".png");
+                                            save.setFileUrl(lastFolderName + "/" + pngName);
+                                        } else {
+                                            save.setFileUrl(lastFolderName + "/" + imgName);
+                                        }
+                                        save.setDisNumber(saved.getDisNumber());
+                                        save.setRemark("B-scan");
+                                        pictureRadarSpectrumRepository.save(save);
+
+                                        /**
+                                         * 将图片复制到对应的地方
+                                         */
+                                        for (String imgFolder : imgFolders) {
+                                            File imgFile = new File(imgFolder);
+                                            if (imgFile.getName().equals(imgName)) {
+                                                if (imgFile.isFile() && isImageFile(imgFile)) {
+                                                    String targetFolderPath = "D:\\WorkSpace\\JavaProject\\tky\\IofTV-Screen-web\\src\\assets\\img\\pictures\\radarSpectrum";
+
+                                                    if (imgFile.getAbsolutePath().endsWith(".bmp")) {       // 如果是bmp格式的文件，将bmp格式的图片文件转储PNG格式
+                                                        try {
+                                                            String pngImgFilePath = imgFile.getAbsolutePath().replace(".bmp", ".png");
+                                                            // 读取BMP文件
+                                                            BufferedImage image = ImageIO.read(new File(imgFile.getAbsolutePath()));
+
+                                                            // 将图像写入PNG文件
+                                                            File pngImg = new File(pngImgFilePath);
+                                                            ImageIO.write(image, "png", pngImg);
+
+                                                            copyImage(pngImg,  targetFolderPath + File.separator + lastFolderName + File.separator);
+
+                                                            System.out.println("转换完成！");
+                                                        } catch (IOException e) {
+                                                            e.printStackTrace();
+                                                        }
+                                                    } else {
+                                                        // 复制图片到目标路径
+                                                        copyImage(imgFile,  targetFolderPath + File.separator + lastFolderName + File.separator);
+                                                    }
+                                                    break;
+                                                }
                                             }
                                         }
                                     }
                                 }
-                            }
-                            reader.close();
+                                reader.close();
 
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
                 }
-
 
 
 
@@ -720,18 +891,33 @@ public class UploaderServiceImpl implements UploaderService {
      * @author
      * @date 2022/8/3 17:28
      */
-    public static String unzip_hutool(String zipFile, String outDir) {
-        // 使用反斜杠 "\" 进行分割
-        String[] pathParts = zipFile.split("\\\\");
-        // 获取倒数第一个元素，即 "test.zip"
-        String targetPart = pathParts[pathParts.length - 1];
+    public static String extract(String zipFilePath, String outDir) {
+        try {
+            // 使用 Paths 来处理路径
+            Path zipFile = Paths.get(zipFilePath);
+            // 获取压缩文件的文件名（不带扩展名）
+            String fileNameWithoutExtension = zipFile.getFileName().toString().replaceFirst("[.][^.]+$", "");
+            // 创建输出目录
+            Path outputDir = Paths.get(outDir, fileNameWithoutExtension);
 
-        // 将 "test.zip" 分割以获取 "test"
-        String[] fileNameParts = targetPart.split("\\.");
-        String targetName = fileNameParts[0];
-        outDir += File.separator + targetName;
-        cn.hutool.core.util.ZipUtil.unzip(zipFile, outDir);
-        return outDir;
+            // 确保输出目录存在
+            File outputDirFile = outputDir.toFile();
+            if (!outputDirFile.exists()) {
+                outputDirFile.mkdirs();
+            }
+
+            // 使用 Zip4j 进行解压
+            ZipFile zip = new ZipFile(zipFile.toFile());
+//            用户上传的时候，如果是使用window系统压缩，编码类型为gbk，如果是使用linux或者mac压缩，那么编码类型为utf-8
+//            解决办法：https://blog.csdn.net/m0_37719874/article/details/120909497
+            zip.setFileNameCharset("GBK");
+            zip.extractAll(outputDir.toString());
+
+            return outputDir.toString();
+        } catch (ZipException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
 //    生成病害的序号(disNumber): 将UUID的一部分与当前时间戳结合使用，以减少重复的可能性。
