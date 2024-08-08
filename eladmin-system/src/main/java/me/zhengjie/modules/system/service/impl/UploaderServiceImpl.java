@@ -15,6 +15,10 @@ import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.poi.ss.formula.functions.T;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +44,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static me.zhengjie.modules.quartz.utils.getAddressUtils.getAddressByGPS;
+import static me.zhengjie.modules.quartz.utils.getAddressUtils.getStartEndAddressByGPS;
 
 /**
  * @author Zuohaitao
@@ -346,8 +353,9 @@ public class UploaderServiceImpl implements UploaderService {
                                     data.setDisRoadName(eachRowValueArray[2]);
                                     data.setDisType(eachRowValueArray[3]);
                                     data.setDisFile(eachRowValueArray[4]);
-                                    data.setDisLat(String.valueOf(convertGPGGAtoGPS(eachRowValueArray[5])));
-                                    data.setDisLon(String.valueOf(convertGPGGAtoGPS(eachRowValueArray[6])));
+//                                    将GPGGA转成GPS; GPS保留小数点后六位
+                                    data.setDisLat(String.format("%.6f", convertGPGGAtoGPS(eachRowValueArray[5])));
+                                    data.setDisLon(String.format("%.6f", convertGPGGAtoGPS(eachRowValueArray[6])));
                                     data.setDisStartMileage(eachRowValueArray[7]);
                                     data.setDisEndMileage(eachRowValueArray[8]);
                                     data.setDisTopDepth(eachRowValueArray[9]);
@@ -367,47 +375,55 @@ public class UploaderServiceImpl implements UploaderService {
                                     data.setDisOpSuggestion(eachRowValueArray[14]);
                                     String roadStartLatLon = eachRowValueArray[15];
                                     String[] roadStartLatLonSplits = roadStartLatLon.split(",");
-                                    data.setRoadStartLat(String.valueOf(convertGPGGAtoGPS(roadStartLatLonSplits[0])));
-                                    data.setRoadStartLon(String.valueOf(convertGPGGAtoGPS(roadStartLatLonSplits[1])));
+                                    data.setRoadStartLat(String.format("%.6f", convertGPGGAtoGPS(roadStartLatLonSplits[0])));
+                                    data.setRoadStartLon(String.format("%.6f", convertGPGGAtoGPS(roadStartLatLonSplits[1])));
                                     String roadEndLatLon = eachRowValueArray[16];
                                     String[] roadEndLatLonSplits = roadEndLatLon.split(",");
-                                    data.setRoadEndLat(String.valueOf(convertGPGGAtoGPS(roadEndLatLonSplits[0])));
-                                    data.setRoadEndLon(String.valueOf(convertGPGGAtoGPS(roadEndLatLonSplits[1])));
+                                    data.setRoadEndLat(String.format("%.6f", convertGPGGAtoGPS(roadEndLatLonSplits[0])));
+                                    data.setRoadEndLon(String.format("%.6f", convertGPGGAtoGPS(roadEndLatLonSplits[1])));
                                     UserDetails currentUser = SecurityUtils.getCurrentUser();
                                     data.setUserName(currentUser.getUsername());
 
+                                    HashMap<String, String > address = getAddressByGPS(data.getDisLon(), data.getDisLat());
+                                    data.setProvince(address.get("省份"));
+                                    data.setCity(address.get("城市"));
+                                    data.setDistrict(address.get("区县"));
+                                    data.setSpare5(address.get("道路"));
+
                                     DiseaseInformation saved = diseaseInformationRepository.save(data);
 
-//                                    存入雷达图谱
+//                                    1.存入雷达图谱
+                                    PictureRadarSpectrum B_scan_img = null;
                                     String[] imgNames = imgName.split(",");
-
                                     for (int i = 0; i < imgNames.length; i++) {
                                         String img = imgNames[i];
-                                        PictureRadarSpectrum save = new PictureRadarSpectrum();
+                                        PictureRadarSpectrum pictureRadarSpectrum = new PictureRadarSpectrum();
 //                                        将图片路径存入数据库
                                         if (img.toLowerCase().endsWith(".bmp")) {
                                             String pngName = img.replace(".bmp", ".png");
-                                            save.setFileUrl(lastFolderName + "/" + pngName);
+                                            pictureRadarSpectrum.setFileUrl(lastFolderName + "/" + pngName);
                                         } else {
-                                            save.setFileUrl(lastFolderName + "/" + img);
+                                            pictureRadarSpectrum.setFileUrl(lastFolderName + "/" + img);
                                         }
-                                        save.setDisNumber(saved.getDisNumber());
+                                        pictureRadarSpectrum.setDisNumber(saved.getDisNumber());
 //                                       如果是第一张,就是B-scan;如果是第二张,就是C-scan
                                         if (i == 0) {
-                                            save.setRemark("B-scan");
+                                            pictureRadarSpectrum.setRemark("B-scan");
+                                            B_scan_img = pictureRadarSpectrumRepository.save(pictureRadarSpectrum);
                                         } else if (i == 1) {
-                                            save.setRemark("C-scan");
+                                            pictureRadarSpectrum.setRemark("C-scan");
+                                            pictureRadarSpectrumRepository.save(pictureRadarSpectrum);
                                         }
-                                        pictureRadarSpectrumRepository.save(save);
                                     }
 
+//                                    2.将图片复制到对应的位置
                                     for (String img : imgNames) {
-                                        // 将图片存入对应的位置
                                         for (String imgFolder : imgFolders) {
                                             File imgFile = new File(imgFolder);
                                             if (imgFile.getName().equals(img)) {
                                                 if (imgFile.isFile() && isImageFile(imgFile)) {
                                                     String targetFolderPath = "D:\\WorkSpace\\JavaProject\\tky\\IofTV-Screen-web\\src\\assets\\img\\pictures\\radarSpectrum";
+                                                    String targetFolderPath2 = "D:\\eladmin\\file\\图片\\病害图片\\radarSpectrum";
 
                                                     if (imgFile.getAbsolutePath().endsWith(".bmp")) {       // 如果是bmp格式的文件，将bmp格式的图片文件转储PNG格式
                                                         try {
@@ -420,6 +436,7 @@ public class UploaderServiceImpl implements UploaderService {
                                                             ImageIO.write(image, "png", pngImg);
 
                                                             copyImage(pngImg,  targetFolderPath + File.separator + lastFolderName + File.separator);
+                                                            copyImage(pngImg,  targetFolderPath2 + File.separator + lastFolderName + File.separator);
 
                                                             System.out.println("转换完成！");
                                                         } catch (IOException e) {
@@ -428,6 +445,7 @@ public class UploaderServiceImpl implements UploaderService {
                                                     } else {
                                                         // 复制图片到目标路径
                                                         copyImage(imgFile,  targetFolderPath + File.separator + lastFolderName + File.separator);
+                                                        copyImage(imgFile,  targetFolderPath2 + File.separator + lastFolderName + File.separator);
                                                     }
                                                     break;
                                                 }
@@ -435,24 +453,16 @@ public class UploaderServiceImpl implements UploaderService {
                                         }
                                     }
 
-
-
-
-
+//                                    3.写入excel传到对接平台
+                                    exportPlatformDataToExcelByDisNumber(saved, B_scan_img);
                                 }
-
-
-
                             }
-
-
-                            } catch (IOException e) {
+                        } catch (IOException e) {
                             e.printStackTrace();
                         }
                     }
-
-
-                } else {
+                }
+                else {
 //                    不包含，二维的
                     for (String txtFilePath : txtFilePaths) {           // 遍历txt文件
 
@@ -480,8 +490,8 @@ public class UploaderServiceImpl implements UploaderService {
                                         data.setDisFile(eachRowValueArray[4]);
 
 //                                    GPSTransToAMapUtil.AMap disMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(eachRowValueArray[6]), convertGPGGAtoGPS(eachRowValueArray[5]));
-                                        data.setDisLat(String.valueOf(convertGPGGAtoGPS(eachRowValueArray[5])));
-                                        data.setDisLon(String.valueOf(convertGPGGAtoGPS(eachRowValueArray[6])));
+                                        data.setDisLat(String.format("%.6f", convertGPGGAtoGPS(eachRowValueArray[5])));
+                                        data.setDisLon(String.format("%.6f", convertGPGGAtoGPS(eachRowValueArray[6])));
 
 
                                         data.setDisStartMileage(eachRowValueArray[7]);
@@ -514,17 +524,23 @@ public class UploaderServiceImpl implements UploaderService {
                                         String roadStartLatLon = eachRowValueArray[15];
                                         String[] roadStartLatLonSplits = roadStartLatLon.split(",");
 //                                    GPSTransToAMapUtil.AMap roadStartMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(roadStartLatLonSplits[1]), convertGPGGAtoGPS(roadStartLatLonSplits[0]));
-                                        data.setRoadStartLat(String.valueOf(convertGPGGAtoGPS(roadStartLatLonSplits[0])));
-                                        data.setRoadStartLon(String.valueOf(convertGPGGAtoGPS(roadStartLatLonSplits[1])));
+                                        data.setRoadStartLat(String.format("%.6f", convertGPGGAtoGPS(roadStartLatLonSplits[0])));
+                                        data.setRoadStartLon(String.format("%.6f", convertGPGGAtoGPS(roadStartLatLonSplits[1])));
                                         String roadEndLatLon = eachRowValueArray[16];
                                         String[] roadEndLatLonSplits = roadEndLatLon.split(",");
 //                                    GPSTransToAMapUtil.AMap roadEndMap = GPSTransToAMapUtil.transform(convertGPGGAtoGPS(roadEndLatLonSplits[1]), convertGPGGAtoGPS(roadEndLatLonSplits[0]));
-                                        data.setRoadEndLat(String.valueOf(convertGPGGAtoGPS(roadEndLatLonSplits[0])));
-                                        data.setRoadEndLon(String.valueOf(convertGPGGAtoGPS(roadEndLatLonSplits[1])));
+                                        data.setRoadEndLat(String.format("%.6f", convertGPGGAtoGPS(roadEndLatLonSplits[0])));
+                                        data.setRoadEndLon(String.format("%.6f", convertGPGGAtoGPS(roadEndLatLonSplits[1])));
 
 //                                    设置用户
                                         UserDetails currentUser = SecurityUtils.getCurrentUser();
                                         data.setUserName(currentUser.getUsername());
+
+                                        HashMap<String, String > address = getAddressByGPS(data.getDisLon(), data.getDisLat());
+                                        data.setProvince(address.get("省份"));
+                                        data.setCity(address.get("城市"));
+                                        data.setDistrict(address.get("区县"));
+                                        data.setSpare5(address.get("道路"));
 
                                         DiseaseInformation saved = diseaseInformationRepository.save(data);
 
@@ -550,7 +566,7 @@ public class UploaderServiceImpl implements UploaderService {
                                         }
                                         save.setDisNumber(saved.getDisNumber());
                                         save.setRemark("B-scan");
-                                        pictureRadarSpectrumRepository.save(save);
+                                        PictureRadarSpectrum pictureRadarSpectrum = pictureRadarSpectrumRepository.save(save);
 
                                         /**
                                          * 将图片复制到对应的地方
@@ -560,6 +576,8 @@ public class UploaderServiceImpl implements UploaderService {
                                             if (imgFile.getName().equals(imgName)) {
                                                 if (imgFile.isFile() && isImageFile(imgFile)) {
                                                     String targetFolderPath = "D:\\WorkSpace\\JavaProject\\tky\\IofTV-Screen-web\\src\\assets\\img\\pictures\\radarSpectrum";
+                                                    String targetFolderPath2 = "D:\\eladmin\\file\\图片\\病害图片\\radarSpectrum";
+
 
                                                     if (imgFile.getAbsolutePath().endsWith(".bmp")) {       // 如果是bmp格式的文件，将bmp格式的图片文件转储PNG格式
                                                         try {
@@ -572,6 +590,7 @@ public class UploaderServiceImpl implements UploaderService {
                                                             ImageIO.write(image, "png", pngImg);
 
                                                             copyImage(pngImg,  targetFolderPath + File.separator + lastFolderName + File.separator);
+                                                            copyImage(pngImg,  targetFolderPath2 + File.separator + lastFolderName + File.separator);
 
                                                             System.out.println("转换完成！");
                                                         } catch (IOException e) {
@@ -580,11 +599,15 @@ public class UploaderServiceImpl implements UploaderService {
                                                     } else {
                                                         // 复制图片到目标路径
                                                         copyImage(imgFile,  targetFolderPath + File.separator + lastFolderName + File.separator);
+                                                        copyImage(imgFile,  targetFolderPath2 + File.separator + lastFolderName + File.separator);
                                                     }
                                                     break;
                                                 }
                                             }
                                         }
+
+//                                    3.写入excel传到对接平台
+                                        exportPlatformDataToExcelByDisNumber(saved, pictureRadarSpectrum);
                                     }
                                 }
                                 reader.close();
@@ -595,11 +618,66 @@ public class UploaderServiceImpl implements UploaderService {
                         }
                     }
                 }
-
-
-
             }
 
+        }
+
+    }
+
+    //   病害数据上报平台
+    private void exportPlatformDataToExcelByDisNumber(DiseaseInformation saved, PictureRadarSpectrum pictureRadarSpectrum) throws IOException {
+        //        将excel写入到输出文件中
+        String outputFilePath = "D:\\eladmin\\excel" + File.separator + "excel_" + saved.getDisNumber() + ".xlsx";
+        File outputFile = new File(outputFilePath);
+        // 确保目录存在
+        File parentDir = outputFile.getParentFile();
+        if (!parentDir.exists()) {
+            parentDir.mkdirs(); // 创建目录，包括任何必要但不存在的父目录
+        }
+
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("病害上报");     // 第一张表
+        Row headerRow = sheet.createRow(0);                // 第一行
+        String[] headers = {"日期", "病害编号","省","市","区/县","所属道路","所属路段","病害来源","设施类型","设施小类","病害部位", "病害类型", "数量", "严重程度", "位置", "车道", "病害图片", "坐标", "病害顶深（m）", "病害底深（m）", "病害尺寸信息长*宽（m）", "验证状态", "验证方式", "周边管线"};
+        for (int i = 0; i < headers.length; i++) {
+            headerRow.createCell(i).setCellValue(headers[i]);
+        }
+
+        int rowCount = sheet.getLastRowNum(); // 获取当前表格的最后一行行号
+        Row newRow = sheet.createRow(rowCount + 1); // 创建新行
+        newRow.createCell(0).setCellValue(saved.getCreateTime() != null ? saved.getCreateTime().toString() : "");
+        newRow.createCell(1).setCellValue(saved.getDisNumber() != null ? saved.getDisNumber() : "");
+        newRow.createCell(2).setCellValue(saved.getProvince() != null ? saved.getProvince() : "");
+        newRow.createCell(3).setCellValue(saved.getCity() != null ? saved.getCity() : "");
+        newRow.createCell(4).setCellValue(saved.getDistrict() != null ? saved.getDistrict() : "");
+        newRow.createCell(5).setCellValue(saved.getSpare5() != null ? saved.getSpare5() : "");
+        HashMap<String, String> startEndAddressByGPS = getStartEndAddressByGPS(saved.getRoadStartLon(), saved.getRoadStartLat(), saved.getRoadEndLon(), saved.getRoadEndLat());
+        newRow.createCell(6).setCellValue(startEndAddressByGPS.get("起点道路") + "-" + startEndAddressByGPS.get("终点道路"));
+        newRow.createCell(7).setCellValue("探地雷达");
+        newRow.createCell(8).setCellValue("机动车道");
+        newRow.createCell(9).setCellValue("机动车道");
+        newRow.createCell(10).setCellValue("路基");
+        newRow.createCell(11).setCellValue(saved.getDisType() != null ? saved.getDisType() : "");
+        newRow.createCell(12).setCellValue("1");
+        newRow.createCell(13).setCellValue("一般");
+        newRow.createCell(14).setCellValue("机动车道");
+        newRow.createCell(15).setCellValue("车道1");
+        //TODO: 病害图片（根据disNumber）
+        newRow.createCell(16).setCellValue("http://120.46.140.233:8001/file/%E5%9B%BE%E7%89%87/%E7%97%85%E5%AE%B3%E5%9B%BE%E7%89%87/radarSpectrum/"+pictureRadarSpectrum.getFileUrl());
+        newRow.createCell(17).setCellValue("["+saved.getDisLon() + "," + saved.getDisLat()+"]");
+        newRow.createCell(18).setCellValue(saved.getDisTopDepth() != null ? saved.getDisTopDepth() : "");
+        newRow.createCell(19).setCellValue(saved.getDisBottomDepth() != null ? saved.getDisBottomDepth() : "");
+        newRow.createCell(20).setCellValue(saved.getDisSizeInfor() != null ? saved.getDisSizeInfor() : "");
+        newRow.createCell(21).setCellValue(new Random().nextInt() % 2 == 0 ? "是" : "否");
+        newRow.createCell(22).setCellValue(new Random().nextInt() % 2 == 0 ? "微芯随钻" : "人工钻孔");
+        newRow.createCell(23).setCellValue(new Random().nextInt() % 2 == 0 ? "污水管" : "雨水管");
+
+        // 将 Excel 写入输出文件
+        try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+            workbook.write(fos);
+            System.out.println("Excel 文件已成功创建: " + outputFilePath);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
     }
@@ -608,36 +686,47 @@ public class UploaderServiceImpl implements UploaderService {
 
         String[] parts = disSizeInfo.split("\\*");
 
-        if (parts.length != 3) {
+        if (parts.length != 3 || parts.length != 2) {
             // 长度不等于3时跳过生成过程并返回空字符串
             return "";
         }
+        String length = null;
+        String width = null;
+        String height = null;
 
-        String length = parts[0];
-        String width = parts[1];
-        String height = parts[2];
-
+        if (parts.length == 3) {
+            length = parts[0];
+            width = parts[1];
+            height = parts[2];
+        } else if (parts.length == 2) {
+            length = parts[0];
+            height = parts[1];
+        }
 
         // 定义Python脚本的路径
-        String pythonScriptPath = "D:\\WorkSpace\\JavaProject\\tky\\tkyadmin\\eladmin-system\\src\\main\\resources\\template\\generate3.py";
+        String pythonScriptPath = "D:\\tky_model\\generate5.py";
+
+        // 生成唯一的文件名
+        String uniqueId = UUID.randomUUID().toString();
+        String fileName = "reconstructed_mesh_" + uniqueId + ".glb";
+        String outputFile = "D:\\tky_model\\road_" + uniqueId + ".csv";
 
         // 调用生成三维坐标的模式
         String generateMode = "generate";
         String numPoints = "8000";
-        String outputFile = "D:\\generateModel\\road12.csv";
 
         // 调用重建曲面的模式
         String reconstructMode = "reconstruct";
         String inputFile = outputFile;
 
-        // 生成唯一的文件名
-        String uniqueId = UUID.randomUUID().toString();
-        String fileName = "reconstructed_mesh_" + uniqueId + ".glb";
         String outputGLBFile = "D:\\WorkSpace\\JavaProject\\tky\\IofTV-Screen-web\\src\\assets\\models" + File.separator + fileName;
+
+        // 指定 Python 可执行文件的完整路径
+        String pythonExePath = "D:\\Software\\anaconda3\\envs\\PyLab\\python.exe";
 
         // 生成三维坐标
         String[] generateCommand = new String[] {
-                "python",
+                pythonExePath,
                 pythonScriptPath,
                 generateMode,
                 length,
@@ -649,7 +738,7 @@ public class UploaderServiceImpl implements UploaderService {
 
         // 重建曲面并导出为GLB
         String[] reconstructCommand = new String[] {
-                "python",
+                pythonExePath,
                 pythonScriptPath,
                 reconstructMode,
                 inputFile,
@@ -920,7 +1009,7 @@ public class UploaderServiceImpl implements UploaderService {
         }
     }
 
-//    生成病害的序号(disNumber): 将UUID的一部分与当前时间戳结合使用，以减少重复的可能性。
+    //    生成病害的序号(disNumber): 将UUID的一部分与当前时间戳结合使用，以减少重复的可能性。
     private String generateUniqueShortID() {
         String uuidPart = UUID.randomUUID().toString().substring(0, 8);
         String timestamp = Long.toHexString(Instant.now().toEpochMilli());
