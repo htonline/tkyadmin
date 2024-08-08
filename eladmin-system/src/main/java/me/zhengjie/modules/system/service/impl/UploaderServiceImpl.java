@@ -695,9 +695,9 @@ public class UploaderServiceImpl implements UploaderService {
             // 长度不等于3时跳过生成过程并返回空字符串
             return "";
         }
-        String length = null;
-        String width = null;
-        String height = null;
+        String length = "";
+        String width = "";
+        String height = "";
 
         if (parts.length == 3) {
             length = parts[0];
